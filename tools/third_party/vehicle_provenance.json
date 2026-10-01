@@ -1,0 +1,43 @@
+{
+    "revision":  "6fc8179bebc8d30dc01f05d5cf1fd398a82e2a19",
+    "files":  [
+                  {
+                      "sha256":  "4ea789c13352367b13ef84acf3da7eb23e82427be0e07de66f2e406649733a3c",
+                      "path":  "vigilante8_vehicle_tools/binary.py"
+                  },
+                  {
+                      "sha256":  "a8a04fab3e42158a03a2bb00d5790ba6f9e351fe078f7c58013a1f9e7af167f5",
+                      "path":  "vigilante8_vehicle_tools/iff.py"
+                  },
+                  {
+                      "sha256":  "0caad8455f72dcb389989c0edf0276b618f0d7fd0003e6bb8f17699fd6827e7f",
+                      "path":  "vigilante8_vehicle_tools/xobf.py"
+                  },
+                  {
+                      "sha256":  "4cc80df6f598337dbd4b9047793272f9662ff99a61b143d54cf1c5bc39b765fb",
+                      "path":  "vigilante8_vehicle_tools/stats.py"
+                  },
+                  {
+                      "sha256":  "b021985de3078ae3f26d16fc088c1e4be0dffe2c16e541fbb0753625a2de36fb",
+                      "path":  "vigilante8_vehicle_tools/project.py"
+                  },
+                  {
+                      "sha256":  "2b7a8e482fd4ce43a73afdde79b97b75e36424dc4f293ce953ed545a9712c843",
+                      "path":  "vigilante8_vehicle_tools/compiler.py"
+                  },
+                  {
+                      "sha256":  "e6308350c01ba1c792a9c975ef920b305655bea4e65fff13fb63276bffa5fd0c",
+                      "path":  "vigilante8_vehicle_tools/registry.py"
+                  },
+                  {
+                      "sha256":  "72c89eb41ef594016070127fe3585d4577c4e89d322731d610eebf8b18a70ecc",
+                      "path":  "vigilante8_vehicle_tools/conversion.py"
+                  }
+              ],
+    "repository":  "https://github.com/GTTeancum/Vigilante-8-recomp",
+    "local_adaptations": {
+        "vigilante8_vehicle_tools/project.py": "Accept original special type 1; represent native animation terminal timestamp and target frame.",
+        "vigilante8_vehicle_tools/registry.py": "Accept original special type 1; retain terminal animation timestamp and loop destination when decoding.",
+        "vigilante8_vehicle_tools/compiler.py": "Compile absolute animation timestamps, preserving terminal holds and nonzero loop destinations instead of summing timestamps."
+    }
+}

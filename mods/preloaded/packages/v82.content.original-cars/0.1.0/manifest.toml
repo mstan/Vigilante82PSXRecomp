@@ -1,0 +1,75 @@
+format_version = 8
+id = "v82.content.original-cars"
+version = "0.1.0"
+name = "Original Vigilante 8 vehicles"
+author = "mstan; GTTeancum; flaffy"
+description = "Adds the thirteen original cars as separate entries in the combined Arcade roster."
+resolver = "declarative"
+save_compatibility = "isolated"
+
+[[target]]
+game_id = "SLUS-00868"
+
+[[feature]]
+id = "cars"
+name = "Original vehicles"
+description = "Select original cars and opponents through the native Arcade menus. Enable with the combined Dreamland menu package."
+default_enabled = false
+
+[[resource]]
+feature = "cars"
+id = "registry"
+label = "Prepared original roster"
+format = "file"
+required = true
+size = 3729
+sha256 = "d7b035ed2fb307b2302cc4c3b30537f117808e53d8264f3cdd0cb6c0e746446c"
+
+[[resource]]
+feature = "cars"
+id = "archive"
+label = "Prepared original vehicle banks"
+format = "file"
+required = true
+size = 1860204
+sha256 = "b444b92dc538e36649551929c2aedb6a3bdc700ced6dfa1b212f6b511f1ab2e3"
+
+[[resource]]
+feature = "cars"
+id = "original"
+label = "Vigilante 8 USA v1.0 disc"
+format = "psx-disc"
+required = true
+size = 223959040
+sha256 = "1133d14a882bf65c061aa24d7e81f875368dbb8f5cd33abdc5cbd5b26f38ffbf"
+
+[[resource]]
+feature = "cars"
+id = "sequel"
+label = "Vigilante 8 2nd Offense USA disc"
+format = "psx-disc"
+required = true
+size = 301703168
+sha256 = "12777aecb48f08d5f0a20b71ae8df4d64a8b5d5d4832664009586eaf99e58201"
+
+[[plugin]]
+feature = "cars"
+id = "v82.original-cars"
+
+[[resource]]
+feature = "cars"
+id = "presentation"
+label = "Prepared original portraits and voices"
+format = "file"
+required = true
+size = 840184
+sha256 = "a90a68f89d46f4b2006aa00c1d69938d49de6057c0dc4c0eb077def5acc40365"
+
+[[resource]]
+feature = "cars"
+id = "outcomes"
+label = "Prepared original victory and defeat speech"
+format = "file"
+required = true
+size = 14520792
+sha256 = "6f1aa7c0765c1cb79e467fe24d04d5784309d33fe093a047ab756216493ba0ec"

@@ -1,0 +1,54 @@
+[game]
+name = "Vigilante 8: 2nd Offense"
+id = "SLUS-00868"
+exe = "media/SLUS_008.68"
+disc = "media/Vigilante 8 - 2nd Offense (USA).cue"
+load_address = "0x80010000"
+entry_pc = "0x80011540"
+text_size = "0x0005B800"
+stack_base = "0x801FFFF0"
+
+[recompiler]
+mod_instruction_sites = ["0x8003CA3C", "0x8003CBB8", "0x8003E5B4", "0x8003E5D4", "0x8003E5E0", "0x8003E69C", "0x8004AEE0", "0x8004AF0C"]
+mod_function_entry_funcs = ["0x80052060", "0x800520D8", "0x80052188", "0x80036B64", "0x80036C2C", "0x80033234", "0x8002091C", "0x80020A80", "0x80020DF0", "0x800333D0", "0x8003C118", "0x8003E32C", "0x80049D54", "0x8002C590", "0x80041B0C", "0x8003E774", "0x8003E8C0", "0x8003EDC4", "0x8003FCC4", "0x80040598", "0x80040F10", "0x80018148", "0x800181E0", "0x80018210", "0x80018478", "0x80018644", "0x80033550", "0x80052F9C", "0x80017F50", "0x800185F0", "0x8005C57C", "0x80038398", "0x8005FA9C", "0x8001DA14"]
+seeds = "seeds/main.txt"
+out_dir = "generated"
+strict = true
+
+[runtime]
+openbios = true
+bios_hle = true
+bios_hle_keep_intro = false
+fast_boot = false
+debug_port = 4545
+window_title = "Vigilante 8: 2nd Offense Recompiled"
+controller = "digital"
+memcard_dir = "saves"
+overlay_cache = true
+
+[controller]
+default_mode = "digital"
+allow_hybrid = false
+lock_mode = true
+
+[video]
+renderer = "opengl"
+supersampling = 1
+texture_filtering = "nearest"
+aspect_ratio = "4:3"
+
+[widescreen]
+offer = false
+
+[widescreen.cull]
+auto_screen_x = false
+
+[audit]
+[[audit.regions]]
+name = "Text"
+rom_start = "0x800"
+rom_end = "0x5C000"
+vaddr_base = "0x80010000"
+
+[audit.normalize]
+kseg_mask = "0x1FFFFFFF"

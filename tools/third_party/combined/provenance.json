@@ -1,0 +1,79 @@
+{
+  "repository": "https://github.com/GTTeancum/Vigilante-8-recomp",
+  "revision": "6fc8179bebc8d30dc01f05d5cf1fd398a82e2a19",
+  "files": [
+    {
+      "source": "tools/blender_addons/tests/build_v8_to_v82_guest_roster.py",
+      "local": "tools/third_party/combined/build_v8_to_v82_guest_roster.py",
+      "sha256": "90150f79e08ef50d9196d552a3656fa24dcb63f9f874064575db12204570cb50"
+    },
+    {
+      "source": "tools/recompone-v8-2/port_dreamland_assets.py",
+      "local": "tools/third_party/combined/port_dreamland_assets.py",
+      "sha256": "68001a528021d2ae3769643b8e4052491c482abc8dc9d9564f6d28fe70bb303e"
+    },
+    {
+      "source": "tools/recompone-v8-2/port_dreamland_overlay.py",
+      "local": "tools/third_party/combined/port_dreamland_overlay.py",
+      "sha256": "2e89ef4e37cd0dd9a47c1ad3fa7ade400bdeb689ecc3224eeb5ce229e42f1b18"
+    },
+    {
+      "source": "tools/recompone-v8-2/v82_arena_registry.py",
+      "local": "tools/third_party/combined/v82_arena_registry.py",
+      "sha256": "8792dec089178259b67c51475e117adce31dd234f2ac198c1bfa40fddbcd0e09"
+    },
+    {
+      "source": "tools/recompone-v8-2/v82_native_selector_table.py",
+      "local": "tools/third_party/combined/v82_native_selector_table.py",
+      "sha256": "10ee4037444cbd07377272325f7850cfbd1119fc888ad44d36a13e06523dac6b"
+    },
+    {
+      "source": "tools/recompone-v8-2/v82_native_water_conversion.py",
+      "local": "tools/third_party/combined/v82_native_water_conversion.py",
+      "sha256": "3f22e81003d548b46cc285b0d73a4814d300fdeb6128b361cf4f9a5041359ac0"
+    },
+    {
+      "source": "tools/build_v8_dreamland_shell_assets.py",
+      "local": "tools/third_party/combined/build_v8_dreamland_shell_assets.py",
+      "sha256": "c9f0ebea9fa45ab30b54f8061681918426adef58debe9e28cc74729b98e8efff"
+    },
+    {
+      "source": "tools/v8_n64_level.py",
+      "local": "tools/third_party/combined/v8_n64_level.py",
+      "sha256": "c7657320e6b0202934877932cf2160c239094a42d9d90e5621e4ac277020662c"
+    },
+    {
+      "source": "tools/translate_v8_n64_overlay_code.py",
+      "local": "tools/third_party/combined/translate_v8_n64_overlay_code.py",
+      "sha256": "fadb7061862e60786389f4291c4644ba3f4c041aac8f5a89a190f7d2b5d58784"
+    },
+    {
+      "source": "tools/build_v8_dreamland_sound_bank.py",
+      "local": "tools/third_party/combined/build_v8_dreamland_sound_bank.py",
+      "sha256": "1c270f6d61f2a54189fe290e5d51f66b739f67040a43fd2159e25f37668bddbb"
+    },
+    {
+      "source": "tools/map_v8_n64_ps1_sound_ids.py",
+      "local": "tools/third_party/combined/map_v8_n64_ps1_sound_ids.py",
+      "sha256": "b09ec938cbdecb4b6b9bab6e27982374fabaeef2da3857e38c61e59833cc0997"
+    },
+    {
+      "source": "tools/recompone-v8-2/build_v8_selector_voice_bank.py",
+      "local": "tools/third_party/combined/build_v8_selector_voice_bank.py",
+      "sha256": "cb5e861fabf2d7a2aa9e20281303a76a51f98edab6c171eaf71eddd46c29d778"
+    },
+    {
+      "source": "tools/recompone-v8-2/extract_v8_result_voices.py",
+      "local": "tools/third_party/combined/extract_v8_result_voices.py",
+      "sha256": "8aa4d96f15c2d585ed31d978a3501827083392fabab48981e5a5fab577027a89"
+    }
+  ],
+  "adaptations": [
+    {
+      "source": "tools/recompone-v8-2/extract_v8_selector_portraits.ps1",
+      "source_sha256": "c2479e8365305a4a6f26df45fabc9bcf142a6c66c2a9527a1f44ef77e5b1108d",
+      "local": "tools/import_original_cars.py",
+      "function": "selector_records"
+    }
+  ]
+}
