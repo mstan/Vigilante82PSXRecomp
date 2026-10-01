@@ -1,5 +1,13 @@
 # Combined Arcade playtest
 
+## Widescreen checkpoint
+
+Enable **Custom Renderer**, use Fit through 32:9 or a fixed ratio, and check
+terrain at the horizon as well as the edges. The owner reports good horizontal
+coverage but distant terrain flicker on Pander Island; this remains unresolved.
+Menus and movies should retain their original layout. Keep internal scale 1x.
+The widescreen unit check and plugin registration audit passed at the checkpoint.
+
 This build runs under psxrecomp at native 1x resolution, with 4K disabled.
 Enable both prepared content packages; the local owner playtest already does so.
 The original cars are separate entries in the native player and enemy menus.

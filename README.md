@@ -46,6 +46,22 @@ load on demand to fit the PS1 memory budgets.
 See [the playtest checklist](docs/PLAYTEST.md). Native resolution is the default;
 4K is disabled. Converted content, donor media and captures stay outside Git.
 
+## Widescreen checkpoint
+
+The optional **Custom Renderer** package adds Fit to Window through 32:9,
+plus fixed 16:9, 21:9 and 32:9 views. It widens terrain/object culling,
+uses larger gameplay packet arenas, and tags sky/HUD geometry for the native-wide
+compositor. Menus and movies keep their authored layout; internal scale is 1x.
+Fit uses the same maximum guest culling width on every monitor.
+
+This is the owner-requested backup before further terrain fixes. Horizontal
+coverage looks good in the owner's playtest, but distant terrain flickers or
+disappears on Pander Island Nuclear Power. That known issue remains open in
+`beads-eio.12.7`; this checkpoint does not claim to fix it.
+
+Framework baseline: `b9f9ba230fac9b24024ac6797e009231e7de538d`.
+Regenerate the game C from this configuration before building a checkout.
+
 ## Local preparation
 
 Keep all media and conversion output outside this repository. Run:
@@ -72,6 +88,6 @@ psxrecomp owns CPU/BIOS execution, rendering, audio, input and saves throughout.
 The source reference clone remains separate, outside this repository. All
 source is checkpointed locally on `checkpoint/v82-combined-20260930`;
 nothing has been published. All 16 title checks and five focused framework
-checks passed at the checkpoint. The owner paused further implementation:
-adaptive widescreen, original music and netplay remain unimplemented here.
+checks passed at the checkpoint. Adaptive widescreen is checkpointed here; music and netplay work remains
+separate in the working tree.
 Work is tracked centrally as `beads-eio.12.1`.

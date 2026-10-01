@@ -86,3 +86,10 @@ launch/collision paths, incorrect callback identities and constants were checked
 against the owner's SLUS_005.10 and SLUS_008.68 executables. The title importer
 extracts the required original effect roots into per-special banks with explicit
 kind remaps and one sparse common sound source. Source assets stay external.
+
+`src/mods/v82_widescreen_plugin.cpp` adapts the terrain-frustum, row-padding
+and expanded packet-arena seams in `sdk/V82Compat.cs`, under its retained MIT
+notice. It uses psxrecomp's native-wide compositor and the earlier V8 title's
+HUD/sky tagging pattern instead of the reference's projection squash.
+Instruction guards and native load-delay boundaries were checked against
+the owner's SLUS_008.68 executable.
