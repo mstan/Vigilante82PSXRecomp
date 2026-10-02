@@ -18,6 +18,7 @@ constexpr uint32_t GP=0x8006A7F0, Pool=0x80200000, PoolBytes=0x80000;
 // metadata begins at80300000; its heap begins at80400000. Both features opt in
 // to8MiB RAM, and ordinary retail code cannot allocate into this reservation.
 uint32_t vblanks=0,last_world=0,sky_slot=0,sky_head=0,hud_slot=0,hud_head=0;
+uint32_t hud_mode=0;
 bool enabled=false,world_seen=false;
 int cull_margin=0;
 // Counters observe the native walker and plane test without changing results.
@@ -63,7 +64,7 @@ int anchor(uint32_t c,uint8_t op){
     }
     return 3*(left+right)<640?-1:3*(left+right)>1280?1:0;
 }
-void tag_chain(uint32_t slot,uint32_t stop,bool sky){
+void tag_chain(uint32_t slot,uint32_t stop,bool sky,bool compact_hud=false){
     if(!slot || !ram(slot))return;
     uint32_t packets[512],count=0,current=rd(slot)&0xFFFFFF;
     while(current!=stop){
@@ -75,8 +76,12 @@ void tag_chain(uint32_t slot,uint32_t stop,bool sky){
     }
     for(unsigned j=0;j<count;++j)for(unsigned i=0,words=rd(packets[j])>>24;i<words;){
         const auto c=packets[j]+4+4*i;const auto op=psx_mod_read_byte(c+3);
-        if(op>=0x20 && op<=0x3F){if(sky)gpu_ws_tag_background_prim(c-4);else gpu_ws_tag_hud_prim(c-4,anchor(c,op));}
-        else if(!sky && op>=0x60 && op<=0x7F)gpu_ws_tag_hud_prim(c-4,anchor(c,op));
+        // Modes 4/5 place the complete vertical-split HUD in one 160px group.
+        // Independent 320px edge classification separates its weapon and
+        // ammo packets. Move this group together; radar/reticle packets are
+        // emitted after this chain and retain their own placement.
+        if(op>=0x20 && op<=0x3F){if(sky)gpu_ws_tag_background_prim(c-4);else gpu_ws_tag_hud_prim(c-4,compact_hud?-1:anchor(c,op));}
+        else if(!sky && op>=0x60 && op<=0x7F)gpu_ws_tag_hud_prim(c-4,compact_hud?-1:anchor(c,op));
         i+=command_words(op);
     }
     psx_mod_counter_add(sky?"v82.ws.sky_tagged":"v82.ws.hud_tagged",count);
@@ -298,11 +303,11 @@ void entry(CPUState* c,uint32_t pc){
             c->gpr[2]=cur;psx_mod_finish_function(c);psx_mod_counter_add("v82.ws.terrain_budget_reject",1);
         }
     }else if(pc==0x8001C910){sky_slot=rd(GP+0xCE0)+0x3FFC;sky_head=rd(sky_slot)&0xFFFFFF;}
-    else if(pc==0x80037A00){hud_slot=c->gpr[6];hud_head=rd(hud_slot)&0xFFFFFF;}
-    else if(pc==0x8003827C){if(hud_slot==c->gpr[6])tag_chain(hud_slot,hud_head,false);hud_slot=0;}
+    else if(pc==0x80037A00){hud_slot=c->gpr[6];hud_head=rd(hud_slot)&0xFFFFFF;hud_mode=c->gpr[5];}
+    else if(pc==0x8003827C){if(hud_slot==c->gpr[6])tag_chain(hud_slot,hud_head,false,hud_mode==4||hud_mode==5);hud_slot=0;}
 }
 void activate(){
-    enabled=false;world_seen=false;vblanks=last_world=sky_slot=hud_slot=0;
+    enabled=false;world_seen=false;vblanks=last_world=sky_slot=hud_slot=hud_mode=0;
     if(!psx_mod_set_main_ram_8mb(1))return;
     char view[16]="Fit";
     if(!psx_mod_option_value("v82.enhancement.widescreen","widescreen","aspect",view,sizeof(view)))std::strcpy(view,"Fit");

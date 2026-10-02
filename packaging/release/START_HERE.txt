@@ -20,7 +20,8 @@ Both peers need this same release and matching content/mod choices.
 Native-wide and High Frame Rate are optional Mods. Multiplayer locks the
 chosen 16:9/21:9 view; other offline view choices use fixed 16:9 online.
 High Frame Rate remains experimental. v0.1.1 fixes multiplayer HUD position
-jitter and incorrect vehicle icons between extra frames.
+jitter and incorrect vehicle icons between extra frames, and keeps weapon
+icons and ammo counts together in the compact multiplayer HUD.
 
 Settings, saves and converted content are writable user data. Linux stores
 them under ~/.local/share/Vigilante82PSXRecomp by default; Windows uses the

@@ -5,6 +5,8 @@ Private Windows x64 and Linux x64 update to the initial v0.1.0 playtest.
 - High Frame Rate extra frames now retain the local player's vehicle icon and
   HUD placement in netplay. The guest split renderer interleaves each world
   view with the other player's HUD; replay now draws the matching local HUD.
+- Weapon icons and their ammo counts now move together in the compact
+  multiplayer HUD at both fixed aspects, including extra frames.
 - The pending HUD context stays with its world frame until native DrawSync.
 - Bounded render replay stays out of compiled continuations that would run
   past its requested stop instruction.
@@ -21,6 +23,13 @@ fixed aspect, including multiple extra presentations within a guest frame.
 More than 2,800 replay passes and 2,100 extra presentations completed with no
 state restoration mismatch, span failure, watchdog or VRAM leak. A fresh
 single-player Meteor Crater match also produced verified extra frames.
+
+An armed multiplayer state reproduced the detached ammo count before the
+anchor fix. The corrected count sits within its weapon display at 16:9 and
+21:9 across another 200 presentations per player per aspect. This armed run
+completed over 1,600 verified replay passes with no restoration mismatch or
+span failure. Regression checks cover both compact layouts, both aspects,
+one to three ammo digits, and returning to the single-player HUD anchors.
 
 Windows and Linux builds pass all 21 title checks, including the owner car
 package fixture, and six focused framework checks. Release packaging verifies

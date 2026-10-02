@@ -274,3 +274,24 @@ package check), plus six focused framework checks. Captures and prepared media
 remain outside Git under the isolated `v82-hud-fix-20261002` run. This fix is on
 `fix/v82-hfr-hud` and is included in v0.1.1. The v0.1.0 tag and assets
 remain available unchanged.
+
+
+### Compact multiplayer weapon HUD follow-up (2026-10-02)
+
+The first icon/position check did not exercise an armed HUD. The owner then
+reported a weapon display at the left with its ammo count near the center.
+The native vertical-split HUD modes 4/5 use one compact 160px group. Classifying
+each packet against global 320px thirds anchored its weapon left and ammo
+center, separating them by the reveal margin. The dedicated compact HUD chain
+now shares a left anchor; the subsequent reticle/radar routine remains separate.
+Full-screen HUD modes retain their existing anchors.
+
+An actual armed original Y state reproduced the detached count of 12. After
+the fix it stays in its weapon display at both fixed aspects. Another 200
+consecutive presentations per player per aspect include multiple swaps per
+guest frame; the armed peer completed over 1,600 verified replay passes without
+a state mismatch, span failure, watchdog or VRAM leak. The regression uses
+retail weapon/ammo coordinates in both compact layouts, one to three ammo
+glyphs, and both enhanced widths; it fails before the fix and passes after.
+Returning to a single-player right anchor is also covered. Both production
+platforms pass all 21 title checks. This correction is included in v0.1.1.

@@ -109,6 +109,34 @@ int main(){
     netplay_active=1;wr(GP+0xEDC,160);entry(&c,0x8001C134);
     for(int width:{426,560}){
         netplay_wide_width=width;
+        // Retail vertical-split HUD modes use a compact group spanning the
+        // full 160px half. Its weapon sprite and ammo text straddle the old
+        // 320px left/center cutoff, but must keep their authored spacing.
+        for(int mode:{4,5}){
+            const uint32_t slot=0x80020000,weapon=0x80020100,ammo=0x80020200;
+            for(int digits:{1,2,3}){
+                hud_tags.clear();wr(slot,0xFFFFFF);
+                c.gpr[5]=mode;c.gpr[6]=slot;entry(&c,0x80037A00);
+                wr(slot,weapon&0xFFFFFF);wr(weapon,0x04000000|(ammo&0xFFFFFF));
+                wr(weapon+4,0x64000000);wr(weapon+8,mode==4?98:90);
+                wr(weapon+12,0);wr(weapon+16,12|(12<<16));
+                for(int digit=0;digit<digits;++digit){
+                    const auto p=ammo+32*digit;
+                    wr(p,0x04000000|(digit+1==digits?0xFFFFFF:((p+32)&0xFFFFFF)));
+                    wr(p+4,0x64000000);wr(p+8,(mode==4?113:105)+8*digit);
+                    wr(p+12,0);wr(p+16,8|(12<<16));
+                }
+                entry(&c,0x8003827C);
+                check(hud_tags.size()==unsigned(1+digits),"every weapon and ammo packet is tagged");
+                const int offset=(width-160)/2;
+                const int weapon_x=(mode==4?98:90)+offset+hud_tags[0].second*offset;
+                for(int digit=0;digit<digits;++digit){
+                    const int ammo_x=(mode==4?113:105)+8*digit+offset+hud_tags[1+digit].second*offset;
+                    check(ammo_x-weapon_x==15+8*digit,"weapon and ammo retain native spacing in both enhanced views");
+                }
+                check(hud_tags[0].second==-1,"compact HUD remains attached to the local view's left edge");
+            }
+        }
         c.gpr[2]=160;instruction(&c,0x8001C250);check(c.gpr[2]==uint32_t(width),"netplay terrain matches enhanced target with offline widescreen disabled");
         c.gpr[3]=160;instruction(&c,0x8002E024);check(c.gpr[3]==uint32_t(width),"netplay object frustum matches terrain");
         c.gpr[2]=160;c.gpr[8]=200;c.gpr[9]=201;c.gpr[10]=202;c.gpr[1]=0;
@@ -117,6 +145,13 @@ int main(){
     }
     netplay_wide_width=0;c.gpr[2]=160;instruction(&c,0x8001C250);check(c.gpr[2]==160,"non-wide split has native culling");
     netplay_active=0;wr(GP+0xEDC,320);
+    enabled=true;hud_tags.clear();wr(0x80020000,0xFFFFFF);
+    c.gpr[5]=0;c.gpr[6]=0x80020000;entry(&c,0x80037A00);
+    wr(0x80020000,0x020100);wr(0x80020100,0x04FFFFFF);
+    wr(0x80020104,0x64000000);wr(0x80020108,288);
+    wr(0x8002010C,0);wr(0x80020110,12|(12<<16));
+    entry(&c,0x8003827C);
+    check(hud_tags.size()==1&&hud_tags[0].second==1,"single-player right HUD retains its native edge after a split HUD");
     enabled=true;display_width=640;c.gpr[2]=0x80074A68;c.gpr[3]=0x80094A68;
     instruction(&c,0x80014BBC);instruction(&c,0x80014BD8);
     check(c.gpr[2]==0x80074A68&&c.gpr[3]==0x80094A68,"menus retain native packet arenas");
