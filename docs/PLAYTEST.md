@@ -272,4 +272,5 @@ through the menus to check the original full-screen replay path as well.
 Windows and Linux builds pass all 21 title checks (including the owner car
 package check), plus six focused framework checks. Captures and prepared media
 remain outside Git under the isolated `v82-hud-fix-20261002` run. This fix is on
-`fix/v82-hfr-hud`; the previously published v0.1.0 assets are unchanged.
+`fix/v82-hfr-hud` and is included in v0.1.1. The v0.1.0 tag and assets
+remain available unchanged.
