@@ -329,7 +329,7 @@ def build_loading_chunk(
                 str(bitmap),
                 str(sbs),
             ],
-            creationflags=getattr(subprocess, "IDLE_PRIORITY_CLASS", 0),
+            creationflags=getattr(subprocess, "IDLE_PRIORITY_CLASS", 0) | getattr(subprocess, "CREATE_NO_WINDOW", 0),
             check=True,
         )
         bs = _trim_sbs_frame(sbs.read_bytes())

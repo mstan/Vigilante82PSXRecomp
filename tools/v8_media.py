@@ -26,18 +26,27 @@ class PsxVolume:
     accepts the data track directly and never mounts or alters a live game.
     """
     def __init__(self, path: Path):
+        self.start_sector = 0
+        count = None
+        if path.suffix.lower() == '.cue':
+            from import_original_music import cue_tracks
+            track = cue_tracks(path)[0]
+            if track['audio']:
+                raise ValueError('The first disc track must contain data')
+            path, self.start_sector, count = track['path'], track['start'], track['count']
         self.path = path
         with path.open("rb") as stream:
+            stream.seek(self.start_sector * 2352)
             prefix = stream.read(24)
         self.raw = prefix[:12] == b"\x00" + b"\xff" * 10 + b"\x00"
         self.stride = 2352 if self.raw else 2048
         if path.stat().st_size % self.stride:
             raise ValueError("Image is not sector aligned")
+        self.sectors = count if count is not None else path.stat().st_size // self.stride
         pvd = self.read_sector(16)
         if pvd[:7] != b"\x01CD001\x01":
             raise ValueError("Missing ISO9660 volume descriptor")
         declared = int.from_bytes(pvd[80:84], "little")
-        self.sectors = path.stat().st_size // self.stride
         if declared != int.from_bytes(pvd[84:88], "big") or not 16 < self.sectors <= declared:
             raise ValueError("Invalid ISO volume size")
         if int.from_bytes(pvd[128:130], "little") != 2048:
@@ -46,8 +55,8 @@ class PsxVolume:
         self.root_size = int.from_bytes(pvd[166:170], "little")
 
     def read_sector(self, lba: int) -> bytes:
-        with self.path.open("rb") as stream:
-            stream.seek(lba * self.stride)
+        with self.path.open("rb", buffering=1024*1024) as stream:
+            stream.seek((self.start_sector + lba) * self.stride)
             data = stream.read(self.stride)
         if len(data) != self.stride:
             raise ValueError("Truncated disc sector")
@@ -63,8 +72,8 @@ class PsxVolume:
             raise ValueError("File exceeds ISO volume")
         sectors = (size + 2047) // 2048
         result = bytearray()
-        with self.path.open("rb") as stream:
-            stream.seek(lba * self.stride)
+        with self.path.open("rb", buffering=1024*1024) as stream:
+            stream.seek((self.start_sector + lba) * self.stride)
             for _ in range(sectors):
                 data = stream.read(self.stride)
                 if len(data) != self.stride:
@@ -112,7 +121,8 @@ class PsxVolume:
 
     def digest(self) -> str:
         digest = hashlib.sha256()
-        with self.path.open("rb") as stream:
+        with self.path.open("rb", buffering=1024*1024) as stream:
+            stream.seek(self.start_sector * self.stride)
             for _ in range(self.sectors):
                 data = stream.read(self.stride)
                 if len(data) != self.stride:

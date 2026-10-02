@@ -1,10 +1,15 @@
 cmake_minimum_required(VERSION 3.20)
 project(Vigilante82PSXRecomp C CXX)
+file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/packaging/release/VERSION" V82_RELEASE_VERSION LIMIT_COUNT 1)
 include(CTest)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 17)
 set(PSXRECOMP_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/psxrecomp-v4" CACHE PATH "psxrecomp source")
+set(PSX_NETPLAY ON CACHE BOOL "Enable two-player V8:2 netplay" FORCE)
 include("${PSXRECOMP_ROOT}/runtime/runtime.cmake")
+if(NOT PSXRECOMP_HAS_RECOMP_NET)
+    message(FATAL_ERROR "V8:2 netplay requires recomp-net; initialize the framework submodule or set RECOMP_NET_ROOT.")
+endif()
 file(GLOB GAME_C CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/generated/SLUS_008.68_full_[0-9][0-9].c")
 if(NOT GAME_C)
     set(GAME_C "${CMAKE_CURRENT_SOURCE_DIR}/generated/SLUS_008.68_full.c")
@@ -15,16 +20,22 @@ psxrecomp_add_runtime_target(psx-runtime
     GAME_GENERATED_FULL_C "${GAME_C}"
     GAME_GENERATED_DISPATCH_C "${CMAKE_CURRENT_SOURCE_DIR}/generated/SLUS_008.68_dispatch.c"
     DEBUG_PORT 4545
+    MAX_PLAYERS 2
+    GAME_VERSION "${V82_RELEASE_VERSION}"
     WINDOW_TITLE "Vigilante 8: 2nd Offense Recompiled"
     DEFAULT_GAME_CONFIG_PATH "game.toml"
+    EXCLUDE_BUILTIN_MODS psx.enhancement.cd-speed
     PRELOADED_MODS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mods/preloaded"
     EXTRAS_SOURCES ${TITLE_PLUGINS})
 set_target_properties(psx-runtime PROPERTIES OUTPUT_NAME "Vigilante82PSXRecomp")
 if(BUILD_TESTING)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
-    add_executable(v82-widescreen-test tests/test_widescreen.cpp)
-    target_include_directories(v82-widescreen-test PRIVATE "${PSXRECOMP_ROOT}/runtime/include")
-    add_test(NAME v82-widescreen COMMAND v82-widescreen-test)
+    foreach(enhancement widescreen music unsplit)
+        add_executable(v82-${enhancement}-test tests/test_${enhancement}.cpp)
+        target_include_directories(v82-${enhancement}-test PRIVATE "${PSXRECOMP_ROOT}/runtime/include")
+        add_test(NAME v82-${enhancement} COMMAND v82-${enhancement}-test)
+    endforeach()
+    add_test(NAME v82-music-import COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_music_import.py")
     add_test(NAME v82-animation-timing COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_animation_timing.py")
     add_executable(v82-lightning-test tests/test_lightning.cpp src/mods/v82_vehicle_package.cpp)
     target_include_directories(v82-lightning-test PRIVATE src/mods "${PSXRECOMP_ROOT}/runtime/include")
@@ -56,8 +67,29 @@ if(BUILD_TESTING)
     add_executable(v82-guest-heap-test tests/test_guest_heap.cpp src/mods/v82_vehicle_package.cpp)
     target_include_directories(v82-guest-heap-test PRIVATE src/mods "${PSXRECOMP_ROOT}/runtime/include")
     add_test(NAME v82-guest-heap COMMAND v82-guest-heap-test)
+    add_executable(v82-transformations-test tests/test_transformations.cpp src/mods/v82_vehicle_package.cpp)
+    target_include_directories(v82-transformations-test PRIVATE src/mods "${PSXRECOMP_ROOT}/runtime/include")
+    add_test(NAME v82-transformations COMMAND v82-transformations-test)
     add_executable(v82-vehicle-package-test tests/test_vehicle_package.cpp src/mods/v82_vehicle_package.cpp)
     target_include_directories(v82-vehicle-package-test PRIVATE src/mods)
     add_test(NAME v82-vehicle-package COMMAND v82-vehicle-package-test)
     set_tests_properties(v82-vehicle-package PROPERTIES SKIP_RETURN_CODE 77)
 endif()
+
+# The release folder includes the frozen conversion worker and encoder. Players
+# choose disc images/ROMs; they never install Python or run preparation scripts.
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+find_program(V82_PSXAVENC NAMES psxavenc
+    HINTS "$ENV{LOCALAPPDATA}/psxrecomp/tools/psxavenc-0.3.1/bin"
+    DOC "psxavenc 0.3.1 used by the bundled media importer")
+if(NOT V82_PSXAVENC)
+    message(FATAL_ERROR "Set V82_PSXAVENC to psxavenc 0.3.1 to package the media importer.")
+endif()
+file(GLOB_RECURSE V82_MEDIA_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tools/*.py")
+add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/media-tools/.ready"
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/build_media_helper.py"
+        --output "${CMAKE_CURRENT_BINARY_DIR}/media-tools" --encoder "${V82_PSXAVENC}"
+    DEPENDS ${V82_MEDIA_SOURCES} "${V82_PSXAVENC}"
+    COMMENT "Packaging automatic owner-media importer" VERBATIM)
+add_custom_target(v82-media-tools ALL DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/media-tools/.ready")
+add_dependencies(psx-runtime v82-media-tools)

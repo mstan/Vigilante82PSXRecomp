@@ -107,11 +107,13 @@ void portrait(CPUState* c,int index,bool pose) {
 bool voice(CPUState* c,unsigned index,uint32_t shell) {
     const auto channel=c->gpr[4],bank=rd(shell+0x16738);
     psx_mod_counter_add("v82.selector.voice_enter",1);
-    if(channel<1||channel>2||!bank||psx_mod_read_half(bank)!=16) {
+    if(channel<1||channel>4||!bank||psx_mod_read_half(bank)!=16) {
         psx_mod_counter_add("v82.selector.invalid_voice_bank",1);return false;
     }
     const auto& source=sections[16];
-    const unsigned sample=14+channel-1,start=source.u16(4+index*4)*8;
+    // Arcade/Survival use speech channels 1/2, while the simultaneous
+    // two-player carousel uses 3/4. Each pair owns the two resident slots.
+    const unsigned sample=14+((channel-1)&1),start=source.u16(4+index*4)*8;
     const unsigned end=index<12?source.u16(8+index*4)*8:source.u16(2)*8;
     const unsigned capacity=(psx_mod_read_half(bank+64)-psx_mod_read_half(bank+60))*8;
     const uint32_t entry=bank+4+sample*4,address=psx_mod_read_half(entry)*8u;

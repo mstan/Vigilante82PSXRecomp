@@ -7,14 +7,18 @@
 #include <stdexcept>
 #include <cstring>
 static std::array<uint8_t,0x800000> memory;
+static std::array<uint8_t,1024> scratchpad;
 static std::string option="Fit";
 static uint32_t display_width=320, aspect_n=0, adaptive_n=0;
 static int live_margin=0;
+static int netplay_active=0, netplay_wide_width=0;
 static PSXModWorldScenePredicate world_callback=nullptr;
 static void check(bool ok,const char* message){if(!ok)throw std::runtime_error(message);}
 extern "C" {
-uint8_t psx_mod_read_byte(uint32_t p){return memory.at(p&0x1FFFFFFF);}
-void psx_mod_write_byte(uint32_t p,uint8_t v){memory.at(p&0x1FFFFFFF)=v;}
+int psx_netplay_active(){return netplay_active;}
+int gpu_ws_netplay_local_viewport_width(){return netplay_wide_width;}
+uint8_t psx_mod_read_byte(uint32_t p){p&=0x1FFFFFFF;return p>=0x1F800000?scratchpad.at(p-0x1F800000):memory.at(p);}
+void psx_mod_write_byte(uint32_t p,uint8_t v){p&=0x1FFFFFFF;if(p>=0x1F800000)scratchpad.at(p-0x1F800000)=v;else memory.at(p)=v;}
 uint16_t psx_mod_read_half(uint32_t p){return psx_mod_read_byte(p)|(uint16_t(psx_mod_read_byte(p+1))<<8);}
 uint32_t psx_mod_read_word(uint32_t p){return psx_mod_read_half(p)|(uint32_t(psx_mod_read_half(p+2))<<16);}
 void psx_mod_write_word(uint32_t p,uint32_t v){for(unsigned i=0;i<4;++i)psx_mod_write_byte(p+i,uint8_t(v>>(8*i)));}

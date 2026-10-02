@@ -1,0 +1,28 @@
+format_version = 9
+id = "v82.content.menus"
+version = "0.1.0"
+name = "Combined content menus"
+author = "mstan; GTTeancum; flaffy"
+description = "Automatically prepared from the selected 2nd Offense disc."
+resolver = "declarative"
+prepare = "v82.media"
+save_compatibility = "isolated"
+[[target]]
+game_id = "SLUS-00868"
+[[feature]]
+id = "menus"
+name = "Combined content menus"
+hidden = true
+default_enabled = false
+[[plugin]]
+feature = "menus"
+id = "v82.content-files"
+[[resource]]
+feature = "menus"
+id = "menu"
+label = "Prepared vehicle menu"
+format = "file"
+hidden = true
+required = true
+size = 111148
+sha256 = "7623fe69d2b8526fe769336cd647a7ebbf844a1128cc03ab1e697705a0d1fd00"

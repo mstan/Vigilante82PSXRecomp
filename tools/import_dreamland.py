@@ -20,7 +20,7 @@ TOOLS = Path(__file__).resolve().parent
 sys.path[:0] = [str(TOOLS / "third_party"), str(TOOLS / "third_party/combined")]
 import port_dreamland_assets as upstream
 import build_v8_dreamland_shell_assets as shell
-from v8_n64_level import V8N64Rom, convert_arena, overlay_exports, psx_executable_exports
+from v8_n64_level import V8N64Rom, convert_arena, overlay_exports, psx_executable_exports, convert_xobf_bin
 from vigilante8_vehicle_tools import iff
 import v82_arena_registry as arenas
 import v82_native_selector_table as selector
@@ -61,13 +61,13 @@ def sequel_sound_bank(rom: bytes, source: bytes, encoder: Path) -> tuple[bytes, 
 
 def prepare(rom_path: Path, v8_path: Path, v82_path: Path, encoder: Path, output: Path) -> dict:
     output = external_output(output)
-    raw = rom_path.read_bytes()
+    rom = V8N64Rom(rom_path.resolve())
+    raw = rom.data
     if len(raw) != ROM_SIZE or hashlib.sha256(raw).hexdigest() != ROM_SHA256:
         raise ValueError("Expected verified USA N64 big-endian ROM")
     if not encoder.is_file():
         raise ValueError("psxavenc executable is required for the native loading image")
     rom = V8N64Rom(rom_path.resolve())
-    v8, files8 = verified_volume(v8_path, "v8")
     v82, files82 = verified_volume(v82_path, "v82")
     inputs = output / "inputs"
     inputs.mkdir(parents=True, exist_ok=True)
@@ -79,13 +79,14 @@ def prepare(rom_path: Path, v8_path: Path, v82_path: Path, encoder: Path, output
         native_inputs[name] = target
     callbacks = frozenset(item.name for item in (
         *overlay_exports(rom.decoded("DREAMLND.DLL")),
-        *psx_executable_exports(read_file(v8, files8, "SLUS_005.10")),
+        *psx_executable_exports(read_file(v82, files82, "SLUS_008.68")),
     ))
     source, conversion = convert_arena(rom.decoded("DREAMLND.EXP"), "DREAMLND", object_callback_names=callbacks)
     # Keep the exact intermediate used by the overlay conversion outside Git.
     (inputs / "DREAMLND.V8.EXP").write_bytes(source)
-    location_bank, location_report = shell.build_location_bank(
-        read_file(v8, files8, "SHELL/LOCATNS.BIN"), rom.decoded("LOCATNS.N64"))
+    # Only Dreamland root 12 is used by the selector. Its N64 bank contains
+    # everything needed; importing the original PSX icons was unnecessary.
+    location_bank, location_report, _ = convert_xobf_bin(rom.decoded("LOCATNS.N64"))
     location_path = inputs / "LOCATNS.BIN"
     location_path.write_bytes(location_bank)
     with tempfile.TemporaryDirectory(prefix="v82-dreamland-loading-") as temporary:
@@ -128,7 +129,7 @@ def prepare(rom_path: Path, v8_path: Path, v82_path: Path, encoder: Path, output
     report = dict(playable=False, runtime_integration_required=True,
                   reference_revision="6fc8179bebc8d30dc01f05d5cf1fd398a82e2a19",
                   source="N64 USA", target="SLUS-00868 USA", arena=asdict(entry),
-                  conversion=asdict(conversion), location=location_report, artifacts=artifacts, sound=sound_report, menu=menu_report,
+                  conversion=asdict(conversion), location=str(location_report), artifacts=artifacts, sound=sound_report, menu=menu_report,
                   overlay=dict(functions=len(overlay_report["functions"]),
                                engine_calls=overlay_report["engine_calls"],
                                branch_likely=len(overlay_report["trampolines"])-1))
@@ -175,8 +176,9 @@ def compile_overlay(output: Path, recompiler: Path, framework: Path) -> dict:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    for name in ("rom", "v8", "v82", "encoder", "output"):
+    for name in ("rom", "v82", "encoder", "output"):
         parser.add_argument("--" + name, required=True, type=Path)
+    parser.add_argument("--v8", type=Path, help=argparse.SUPPRESS)  # legacy, unused
     parser.add_argument("--recompiler", type=Path)
     parser.add_argument("--framework", type=Path)
     args = parser.parse_args()

@@ -93,3 +93,20 @@ notice. It uses psxrecomp's native-wide compositor and the earlier V8 title's
 HUD/sky tagging pattern instead of the reference's projection squash.
 Instruction guards and native load-delay boundaries were checked against
 the owner's SLUS_008.68 executable.
+
+`src/mods/v82_music_plugin.cpp` uses `V82NativeAudio.cs` and
+`RecompOne.Runtime/Cdrom/SoundtrackDisc.cs` for album ordering and native
+track-selector integration. SoundtrackDisc is covered by the runtime's retained
+MIT notice; V82NativeAudio reuse rests on the reported author permission.
+Track names/order
+in `tools/import_original_music.py` also follow `V8LooseManifest`. The importer
+reads only owner-supplied PCM. The adaptation keeps native CdGetToc, playback
+and report callbacks; psxrecomp supplies the verified audio-only playlist.
+
+The packaged importer includes psxavenc 0.3.1 (Ben Russell and Adrian Siekierka),
+under the retained `LICENSE_PSXAVENC`. Source and release:
+https://github.com/WonderfulToolchain/psxavenc/tree/v0.3.1 . Its bundled Windows
+build includes FFmpeg; upstream build configuration/source is available there.
+Python, PyInstaller, NumPy and Pillow retain their distributed package notices.
+The launcher worker bundles the existing attributed conversion modules, with
+our source-media selection, cache and verification orchestration.

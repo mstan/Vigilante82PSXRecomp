@@ -97,6 +97,7 @@ int main() {
     c=cpu(200);dreamland::entry(&c,dreamland::Begin);require(c.pc==0&&!rd(dreamland::Meta+4),"retail reader changed");
     c=cpu(Position,dreamland::Extent,1);dreamland::entry(&c,dreamland::WholeRead);
     require(c.gpr[2]==Position&&psx_mod_read_byte(Position)==1&&psx_mod_read_byte(Position+6)==7&&!psx_mod_read_byte(Position+2047),"whole-sector read must return buffer for native realloc");
+    dreamland::files[2].data=bytes.data();dreamland::files[2].size=bytes.size();
     const auto path=Position;
     for(unsigned i=0;i<=std::strlen(dreamland::files[2].path);++i)
         psx_mod_write_byte(path+i,dreamland::files[2].path[i]);

@@ -1,10 +1,11 @@
-format_version = 8
+format_version = 9
 id = "v82.content.dreamland"
 version = "0.1.0"
 name = "Super Dreamland 64"
 author = "mstan; GTTeancum; flaffy"
 description = "N64 arena added to the sequel location menu."
 resolver = "declarative"
+prepare = "v82.media"
 save_compatibility = "isolated"
 
 [[target]]
@@ -21,15 +22,17 @@ feature = "arena"
 id = "arena"
 label = "Prepared Dreamland arena"
 format = "file"
+hidden = true
 required = true
 size = 533692
-sha256 = "10a54fa1f4b9f71d18df84f4a5cd44953141cae90ef9e6e385e0bced5829cfb7"
+sha256 = "5939ec47a04fd61f5acda4455c7d20c90fcb15200c2586df8b4328d68ed137f8"
 
 [[resource]]
 feature = "arena"
 id = "overlay"
 label = "Prepared Dreamland code"
 format = "file"
+hidden = true
 required = true
 size = 15580
 sha256 = "3245bda08be9ac658dec64f86adf7607fb030bf837251f8d131dcff07c36d5f5"
@@ -39,6 +42,7 @@ feature = "arena"
 id = "sounds"
 label = "Prepared sequel and Dreamland sound bank"
 format = "file"
+hidden = true
 required = true
 size = 371868
 sha256 = "1a4f2887075b7b95a52fe1c42d7db0d0b42c3ef5d13f2b6f028f2a9dc31a3dc0"
@@ -47,28 +51,14 @@ sha256 = "1a4f2887075b7b95a52fe1c42d7db0d0b42c3ef5d13f2b6f028f2a9dc31a3dc0"
 feature = "arena"
 id = "n64"
 label = "Vigilante 8 USA N64 ROM"
-format = "file"
+format = "n64-rom"
+input_only = true
+shared_source = "v8.n64"
+file_patterns = "*.z64;*.v64;*.n64"
+file_description = "Vigilante 8 N64 ROM"
 required = true
 size = 8388608
 sha256 = "fd75b40f561049b70b7e0bc652584062061fd17cf23e518700f5dcc5d4938799"
-
-[[resource]]
-feature = "arena"
-id = "original"
-label = "Vigilante 8 USA v1.0 disc"
-format = "psx-disc"
-required = true
-size = 223959040
-sha256 = "1133d14a882bf65c061aa24d7e81f875368dbb8f5cd33abdc5cbd5b26f38ffbf"
-
-[[resource]]
-feature = "arena"
-id = "sequel"
-label = "Vigilante 8 2nd Offense USA disc"
-format = "psx-disc"
-required = true
-size = 301703168
-sha256 = "12777aecb48f08d5f0a20b71ae8df4d64a8b5d5d4832664009586eaf99e58201"
 
 [[plugin]]
 feature = "arena"
@@ -79,15 +69,25 @@ feature = "arena"
 id = "menu"
 label = "Prepared combined location menu"
 format = "file"
+hidden = true
 required = true
-size = 111332
-sha256 = "4e69045eb4b8ca9d5497f38b83576bbbae2674ce4b2f5ff0f948472f0a04e246"
+size = 111744
+sha256 = "157dcc66c223a3f8d304438a0a845b275e483cc1231aeef63090db76b6bade01"
 
 [[resource]]
 feature = "arena"
 id = "previews"
 label = "Prepared location previews"
 format = "file"
+hidden = true
 required = true
 size = 347680
 sha256 = "d5645347d5e6209d0f1230d52d242c91db65d02aa3c5cf3d7d153f33f442fd98"
+
+[[dependency]]
+id = "v82.content.menus"
+version = "0.1.0"
+[[requirement]]
+feature = "arena"
+package = "v82.content.menus"
+requires_feature = "menus"

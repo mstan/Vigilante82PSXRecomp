@@ -27,6 +27,7 @@ constexpr uint32_t Create = 0x80036C2Cu, Resolve = 0x80036B64u, Generic = 0x8003
 constexpr uint32_t Common = 0x80033234u, VramReset = 0x8002091Cu, VramAlloc = 0x80020A80u;
 constexpr uint32_t VramFree = 0x80020DF0u, Teardown = 0x800333D0u;
 constexpr uint32_t DrawOTag = 0x8005C57Cu;
+constexpr uint32_t LoadCompressedTexture = 0x80021064u;
 constexpr uint32_t VehicleEvent = 0x8003C118u;
 constexpr uint32_t Transform = 0x8003E32Cu, Pickup = 0x80049D54u;
 v82::VehiclePackage package;
@@ -35,6 +36,7 @@ bool enabled = false;
 #ifndef PSX_NO_DEBUG_TOOLS
 bool test_original_special = false;
 bool test_defeat = false;
+bool test_transform = false;
 #endif
 std::vector<uint32_t> bypass;
 struct Request { std::array<uint32_t, 6> args; v82::Bytes pixels; bool compressed; };
@@ -50,6 +52,7 @@ constexpr Hook Hooks[] = {
     {0x8003E774u, 0x27BDFFE0u}, {0x8003E8C0u, 0x27BDFF90u},
     {0x8003EDC4u, 0x27BDFEF8u}, {0x8003FCC4u, 0x27BDFF68u},
     {0x80040598u, 0x27BDFF40u}, {0x80040F10u, 0x27BDFEF0u},
+    {LoadCompressedTexture, 0x27BDF390u},
     {DrawOTag, 0x3C028007u}, {0x80038398u, 0x8482000Au},
     {0x8005FA9Cu, 0xAFA50004u}, {0x8001DA14u, 0x27BDFFE0u}, {0x80018210u, 0x27BDFFD8u},
 };
@@ -340,8 +343,19 @@ void scan_bank(const v82::Bank& bank) {
 }
 #include "v82_presentation.inc"
 #include "v82_native_selector.inc"
+void prepare_transform_test_roster(CPUState* cpu) {
+#ifndef PSX_NO_DEBUG_TOOLS
+    // Keep the isolated pickup fixture within the native VRAM budget by
+    // sharing one retail opponent bank. Participant counts remain native.
+    if (test_transform) for (unsigned i = 1; i < 6; ++i) {
+        const auto p = cpu->gpr[28] + 0x1104 + i;
+        if (int8_t(psx_mod_read_byte(p)) >= 0) psx_mod_write_byte(p, 0);
+    }
+#endif
+}
 void prepare_match_textures(CPUState* cpu) {
     requests.clear();selector::apply_npcs(cpu);
+    prepare_transform_test_roster(cpu);
     if(selected>=0)psx_mod_write_byte(cpu->gpr[28]+0x1104,uint8_t(64+selected));
     for(unsigned i=0;i<6;++i) {
         const unsigned type=psx_mod_read_byte(cpu->gpr[28]+0x1104+i);
@@ -386,6 +400,25 @@ bool texture_owned(uint32_t pointer) {
     }
     return false;
 }
+// Imported wheel textures are compressed. The native transform animation
+// loads them while using the 1 KiB scratchpad stack, but 80021064 reserves
+// 0xC70 bytes before calling GPU upload helpers. Give that synchronous call
+// a guest RAM stack; keep its native decoder, uploads and return values.
+// Normal main-RAM calls and textures outside our package retain their path.
+bool load_compressed_texture(CPUState* cpu) {
+    const auto sp = cpu->gpr[29];
+    if (sp < 0x1F800000u || sp > 0x1F800400u || !texture_owned(cpu->gpr[5])) return false;
+    constexpr uint32_t StackBytes = 0x2000;
+    const auto stack = allocate(StackBytes);
+    if (!stack) fail("v82.texture.stack_allocation_failed");
+    cpu->gpr[29] = stack + StackBytes - 16;
+    original(cpu, LoadCompressedTexture);
+    cpu->gpr[29] = sp;
+    release(stack);
+    psx_mod_counter_add("v82.texture.scratchpad_stack_redirected", 1);
+    psx_mod_finish_function(cpu);
+    return true;
+}
 bool claim(CPUState* cpu) {
     if (!rd(Meta + 8)) return false;
     const bool palette = cpu->gpr[6] == 16 && cpu->gpr[7] == 1;
@@ -411,6 +444,7 @@ bool claim(CPUState* cpu) {
 void common(CPUState* cpu) {
     const uint32_t gp = cpu->gpr[28];
     selector::apply_npcs(cpu);
+    prepare_transform_test_roster(cpu);
     if(selected>=0)psx_mod_write_byte(gp+0x1104,uint8_t(64+selected));
     uint32_t mask = 0x001C0000u, alternate = 0;
     const unsigned players = int8_t(psx_mod_read_byte(gp + 0x31)) < 9 ? 2 : 4;
@@ -463,6 +497,7 @@ void entry(CPUState* cpu, uint32_t address) {
     init();
     if (address == 0x80038398u && presentation::object_name(cpu)) return;
     if (presentation::result_entry(cpu,address)) return;
+    if (address == LoadCompressedTexture && load_compressed_texture(cpu)) return;
     if (address == DrawOTag) { draw_packets::prepare(cpu); return; }
     if (flight::entry(cpu, address)) return;
     if (address == Alloc) { cpu->gpr[2] = allocate(cpu->gpr[4]); psx_mod_finish_function(cpu); }
@@ -511,6 +546,38 @@ void entry(CPUState* cpu, uint32_t address) {
                     psx_mod_finish_function(cpu); return;
                 }
             }
+            if (test_transform && cpu->gpr[5] == 0 && rd(Meta + 40) &&
+                object == rd(0x8006B7E8u)) {
+                // Reference MaintainSoakVehicle: keep native durability intact
+                // so opponents do not end the isolated pickup lifecycle test.
+                const auto health = psx_mod_read_half(object + 0x1E);
+                psx_mod_write_half(object + 0x1C, health);
+                for (unsigned offset : {0xF8u, 0xFCu, 0x100u}) {
+                    const auto zone = rd(object + offset);
+                    if (zone >= HeapLo && zone < HeapHi - 0x20)
+                        psx_mod_write_half(zone + 0x1C, health);
+                }
+            }
+            if (test_transform && cpu->gpr[5] == 0 && rd(Meta + 40) &&
+                object == rd(0x8006B7E8u) && rd(Meta + 48)) {
+                const auto command = rd(Meta + 48); wr(Meta + 48, 0);
+                if (command >= 0x81 && command <= 0x83) {
+                    // Native dropped pickup + its real collision callback.
+                    const auto hit = allocate(64);
+                    for (unsigned i = 0; i < 64; i += 4) wr(hit + i, 0);
+                    wr(hit, object);
+                    const auto pickup = original_specials::invoke(cpu, 0x8004AA24u,
+                        command - 0x80 + 6, object + 0x34, hit + 16);
+                    wr(Meta + 60, pickup);
+                    const auto result = original_specials::invoke(cpu, Pickup, pickup, 3, hit);
+                    wr(Meta + 56, result);
+                    if (!result) original_specials::invoke(cpu, 0x800309A0u, pickup);
+                    release(hit);
+                    psx_mod_counter_add("v82.test.pickup_collision", 1);
+                } else original_specials::invoke(cpu, Transform, object, command - 1, 600);
+                wr(Meta + 52, rd(Meta + 52) + 1);
+                psx_mod_counter_add("v82.test.transform_requested", 1);
+            }
             if (test_original_special && cpu->gpr[5] == 0 && rd(Meta + 32) != object &&
                 int16_t(psx_mod_read_half(object + 10)) < 0 &&
                 (package.vehicles[object_entry(object)].flags & (1u << 23))) {
@@ -553,6 +620,8 @@ void activate() {
 #ifndef PSX_NO_DEBUG_TOOLS
     const char* test_special = std::getenv("PSX_V82_TEST_ORIGINAL_SPECIAL");
     test_original_special = test_special && !std::strcmp(test_special, "1");
+    const char* transform_test = std::getenv("PSX_V82_TEST_TRANSFORM");
+    test_transform = transform_test && !std::strcmp(transform_test, "1");
     const char* defeat = std::getenv("PSX_V82_TEST_DEFEAT");
     test_defeat = defeat && !std::strcmp(defeat, "1");
 #endif
@@ -602,10 +671,10 @@ PSX_MOD_CONSTRUCTOR(register_combined) {
     original_specials::register_callbacks();
     lightning::register_callbacks();
     special_roster::register_callbacks();
-    // SHELL is supplied by the Dreamland feature, so even a retail-only roster
+    // SHELL is supplied by the shared menu feature, so even a retail-only roster
     // needs these callbacks to forward its native menu calls unchanged.
-    for(uint32_t i=0;i<25;++i)
-        psx_mod_register_guest_function_plugin("v82.dreamland",selector::Host+i*4,selector::callback);
+    for(uint32_t i=0;i<26;++i)
+        psx_mod_register_guest_function_plugin("v82.content-files",selector::Host+i*4,selector::callback);
     psx_mod_register_guest_function_plugin(Plugin, Dispatch, dispatch);
     for (const auto& hook : Hooks)
         psx_mod_register_function_entry_plugin(Plugin, hook.pc, entry);
@@ -617,3 +686,5 @@ extern "C" bool v82_presentation_file(const uint8_t** data,uint64_t* size) {
     if(!enabled||!presentation::ready)return false;
     *data=presentation::sections[15].data;*size=presentation::sections[15].size;return true;
 }
+
+extern "C" void v82_content_reset() { enabled=false; }

@@ -2,6 +2,7 @@
  * Copyright (c) 2026 flaffy. MIT; tools/third_party/LICENSE_RECOMPONE. */
 namespace selector {
 constexpr uint32_t Host=0x8FFF0300, S=Meta+0x100, Text=Meta+0x400, Colors=Meta+0x500;
+constexpr uint32_t Two=Meta+0x700, TwoActive=Two+64, TwoCommitted=Two+68;
 enum Field { Base, Active, Guest, Previous, First, Last, Proxy, Latch,
              Enemy, Accepted, AcceptedProxy, Player, Preview, Context };
 int get(unsigned field) { return int32_t(rd(S+field*4)); }
@@ -17,6 +18,7 @@ void native(CPUState* c,uint32_t fn) {
 }
 void clear_npcs() { for(unsigned i=0;i<4;++i) {wr(npc(i),UINT32_MAX);wr(npc(i)+4,UINT32_MAX);wr(npc(i)+8,0);} }
 void begin(CPUState* c) {
+    wr(TwoActive,0);
     if(c->gpr[5]==1||c->gpr[5]==2)c->gpr[4]=0;
     set(Active,c->gpr[5]==1||c->gpr[5]==2);set(Guest,-1);set(Previous,-1);set(First,0);set(Last,17);
     set(Proxy,0);set(Latch,0);set(Enemy,0);set(Accepted,-1);set(AcceptedProxy,-1);
@@ -33,26 +35,30 @@ void slot(CPUState* c) {
     if(guest()>=0)current=get(Proxy);
     set(Previous,current);c->gpr[30]=uint32_t(current);
 }
-void navigate(CPUState* c) {
-    if(!get(Active)||get(Previous)<0)return;
-    const auto input=rd(0x8006B508);bool left=input&0x80000000,right=input&0x20000000;
-    if(left==right)return;
-    const int direction=right?1:-1, target=int(c->gpr[30]), previous=get(Previous);
+int navigate_slot(int target,uint32_t input) {
+    if(!get(Active)||get(Previous)<0)return target;
+    bool left=input&0x80000000,right=input&0x20000000;
+    if(left==right)return target;
+    const int direction=right?1:-1, previous=get(Previous);
     int index=guest();
-    if(index>=0&&get(Latch)==direction) {c->gpr[30]=get(Proxy);return;}
+    if(index>=0&&get(Latch)==direction)return get(Proxy);
     if(index<0) {
-        if(!((right&&target<previous)||(left&&target>previous))) {set(Previous,target);return;}
+        if(!((right&&target<previous)||(left&&target>previous))) {set(Previous,target);return target;}
         set(First,right?target:previous);set(Last,right?previous:target);set(Proxy,get(First));
         index=right?0:int(package.vehicles.size())-1;
     } else {
         index+=direction;
         if(index<0||unsigned(index)>=package.vehicles.size()) {
             const int retail=right?get(First):get(Last);
-            set(Guest,-1);set(Previous,retail);set(Latch,direction);c->gpr[30]=retail;return;
+            set(Guest,-1);set(Previous,retail);set(Latch,direction);return retail;
         }
     }
-    set(Guest,index);set(Previous,get(Proxy));set(Latch,direction);c->gpr[30]=get(Proxy);
+    set(Guest,index);set(Previous,get(Proxy));set(Latch,direction);
     psx_mod_counter_add("v82.selector.original_highlighted",1);
+    return get(Proxy);
+}
+void navigate(CPUState* c) {
+    c->gpr[30]=uint32_t(navigate_slot(int(c->gpr[30]),rd(0x8006B508)));
 }
 void ensure_preview(CPUState* c,unsigned i) {
     const auto& v=package.vehicles.at(i);
@@ -121,9 +127,56 @@ void enemy_slot(CPUState* c) {
         used[proxy]=true;wr(npc(r)+8,proxy);wr(npc(r)+4,proxy);psx_mod_write_byte(0x8006B8F6+r,uint8_t(proxy));
     }
 }
+uint32_t two_field(unsigned player,unsigned field) {return Two+player*32+(field-Guest)*4;}
+int two_guest(unsigned player) {return int32_t(rd(two_field(player,Guest)));}
+void two_begin() {
+    set(Active,1);set(Enemy,0);set(Guest,-1);clear_npcs();wr(S+0xF0,Magic);
+    wr(TwoActive,1);wr(TwoCommitted,0);
+    for(unsigned player=0;player<2;++player) {
+        for(unsigned field=Guest;field<=Latch;++field)wr(two_field(player,field),0);
+        wr(two_field(player,Guest),UINT32_MAX);wr(two_field(player,Previous),player);
+        wr(two_field(player,First),0);wr(two_field(player,Last),17);
+        wr(two_field(player,Proxy),player);
+    }
+    psx_mod_counter_add("v82.selector.two_begin",1);
+}
+void two_player(unsigned player) {
+    set(Player,int(player));
+    for(unsigned field=Guest;field<=Latch;++field)set(field,int32_t(rd(two_field(player,field))));
+}
+void two_navigate(CPUState* c) {
+    const unsigned player=c->gpr[23];if(player>=2)return;
+    const auto stack=c->gpr[29]+24, address=rd(stack+0xE4), input=rd(0x8006B508+player*4);
+    two_player(player);
+    if(!(input&0xA0000000))set(Latch,0);
+    // A native navigation event resets this player's preview stage to zero.
+    // Accepted players retain their own carousel state while the other moves.
+    if(!rd(rd(stack+0xE8)))wr(address,uint32_t(navigate_slot(int(rd(address)),input)));
+    for(unsigned field=Guest;field<=Latch;++field)wr(two_field(player,field),uint32_t(get(field)));
+}
+int two_identity(unsigned player,int retail) {
+    const int index=two_guest(player);return index>=0?64+index:retail;
+}
+void two_commit(CPUState* c) {
+    const auto stack=c->gpr[29]+24;wr(TwoCommitted,1);
+    for(unsigned player=0;player<2;++player) {
+        const int type=two_identity(player,int(rd(stack+0x58+player*4)));
+        psx_mod_write_byte(c->gpr[28]+0x1104+player,uint8_t(type));
+        if(type>=64)psx_mod_counter_add("v82.selector.two_original_accepted",1);
+    }
+}
+void two_end(CPUState* c) {
+    const auto stack=c->gpr[29]+24;
+    if(rd(TwoCommitted))for(unsigned player=0;player<2;++player)
+        wr(stack+0x58+player*4,uint32_t(two_identity(player,int(rd(stack+0x58+player*4)))));
+    release_previews(c);wr(TwoActive,0);set(Active,0);set(Guest,-1);set(Enemy,0);
+}
 void preview(CPUState* c,int index) {
     ensure_preview(c,unsigned(index));const auto& v=package.vehicles[index];
-    c->gpr[4]=rd(state(index)+124);c->gpr[5]=v.preview_kind;c->gpr[6]=state(index)+8;
+    // Two-player menus clone each bank before creating their preview. Keep
+    // that independent clone so retiring one player cannot free the other's.
+    if(!rd(TwoActive)||get(Enemy))c->gpr[4]=rd(state(index)+124);
+    c->gpr[5]=v.preview_kind;c->gpr[6]=state(index)+8;
     const int previous=constructing;constructing=index;
     { WordScope wheels(WheelSlot,rd(state(index)+4)?rd(state(index)+4):rd(WheelSlot));native(c,0x8003C464); }
     constructing=previous;
@@ -146,6 +199,16 @@ void callback(CPUState* c,uint32_t pc) {
         case 5:if(guest()>=0)c->gpr[2]=state(guest())+8+c->gpr[18];break;
         case 6:if(guest()>=0)c->gpr[4]=Colors+guest()*16;break;
         case 7:if(guest()>=0)c->gpr[2]=Colors+guest()*16;break;
+        case 8:two_begin();break;
+        case 9:if(c->gpr[23]<2)two_player(c->gpr[23]);break;
+        case 10:two_navigate(c);break;
+        case 11:
+            c->gpr[3]=uint32_t(two_identity(0,int(c->gpr[3])));
+            c->gpr[2]=uint32_t(two_identity(1,int(c->gpr[2])));break;
+        case 12:two_commit(c);break;
+        case 13:two_end(c);break;
+        case 14:if(guest()>=0)c->gpr[2]=state(guest())+8+c->gpr[19];break;
+        case 15:set(Enemy,1);set(Guest,-1);release_previews(c);break;
         }
         return;
     }
@@ -158,7 +221,7 @@ void callback(CPUState* c,uint32_t pc) {
         } else if(enabled&&ra==0x8010689C&&get(Enemy)) {
             set(Guest,get(Accepted));set(Enemy,0);set(Previous,-1);clear_npcs();index=guest();
         }
-        if(index>=0&&(ra==0x80106A7C||ra==0x80106B14)) {
+        if(index>=0&&(ra==0x80106A7C||ra==0x80106B14||ra==0x80108020)) {
             const auto name=ra==0x80106B14?std::string(Names[index]):package.vehicles[index].name;
             for(unsigned n=0;n<=name.size();++n)psx_mod_write_byte(Text+n,n<name.size()?uint8_t(name[n]):0);
             c->gpr[5]=Text;
@@ -194,8 +257,13 @@ void callback(CPUState* c,uint32_t pc) {
         if(index>=0&&package.vehicles[index].flying()&&(ra==0x80106DE0||ra==0x8010838C))break;
         native(c,0x8001E28C);break;
     case 24:
-        if(index<0||get(Enemy)||ra!=0x8010798C||!presentation::voice(c,unsigned(index),uint32_t(get(Base))))native(c,0x8001E188);
+        if(index<0||get(Enemy)||(ra!=0x8010798C&&ra!=0x801086CC)||!presentation::voice(c,unsigned(index),uint32_t(get(Base))))native(c,0x8001E188);
         break;
+    case 25:
+        if(index>=0&&rd(TwoActive)&&ra==0x80108104) {
+            ensure_preview(c,unsigned(index));c->gpr[4]=rd(state(index)+124);
+        }
+        native(c,0x8001ECCC);break;
     }
 }
 void apply_npcs(CPUState* c) {

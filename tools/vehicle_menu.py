@@ -27,11 +27,22 @@ def patch(data, records):
         if tuple(words) != expected:
             raise ValueError(f"Vehicle selector seam changed at {at:X}")
         start = len(data)
+        moved = list(words)
+        # Preserve a native conditional branch when moving its delay slot.
+        # The duplicate-car comparison in the two-player selector uses one.
+        for i, word in enumerate(moved):
+            if word >> 26 in (4, 5):
+                displacement = (word & 0x7FFF) - (word & 0x8000)
+                target = at + i*4 + 4 + displacement*4
+                displacement = (target - (start + 24 + i*4 + 4)) // 4
+                if not -32768 <= displacement <= 32767:
+                    raise ValueError('Selector trampoline branch out of range')
+                moved[i] = (word & 0xFFFF0000) | (displacement & 0xFFFF)
         # Callback RA points to the restore sequence. Its trailing constant
         # lets the callback recover this DLL's actual relocation base.
         code = [0x27BDFFE8, 0xAFBF0010,
                 0x0C000000 | ((HOST+kind*4)&0xFFFFFFF)//4, 0,
-                0x8FBF0010, 0x27BD0018, *words,
+                0x8FBF0010, 0x27BD0018, *moved,
                 0x08000000 | ((at+8)//4), 0, start+16]
         data.extend(b''.join(w.to_bytes(4,'little') for w in code))
         for i, (entry, symbol) in enumerate(records):
@@ -58,13 +69,24 @@ def patch(data, records):
     at=matches[0]+4
     inline(at,6,(read32(data,at),read32(data,at+4)))
 
+    # The native two-player selector is a separate simultaneous carousel.
+    inline(0x7AD4,8,(0x27BDFEE0,0xAFBF011C)) # begin both players
+    inline(0x7F84,9,(0x8FAD00E8,0x00000000)) # current player after input poll
+    inline(0x87C8,10,(0x0C016FBC,0x24040001)) # settled navigation/allowed mask
+    inline(0x8668,11,(0x1462000E,0x3C020000)) # compare actual identities
+    inline(0x8914,12,(0x8FAC0128,0x00000000)) # after both native slot stores
+    inline(0x8B08,13,(0x8FA2005C,0x8FA30058)) # return packed player identities
+    inline(0x845C,14,(0x9043002C,0x8CA20000)) # authored performance bars
+    inline(0x8A24,15,(0x24050190,0x24070003)) # optional two-player enemy editor
+
     calls={0x8001A3B0:16, 0x8001EF34:17, 0x8003C464:18,
            0x80036BE0:19, 0x800149AC:20, 0x8010536C:21,
-           0x801109FC:22, 0x8001E28C:23, 0x8001E188:24}
+           0x801109FC:22, 0x8001E28C:23, 0x8001E188:24,
+           0x8001ECCC:25}
     # Identify internal JALs through their relocation records, external ones
     # through their encoded address. No matching arbitrary immediates.
     relative={e&~3 for e,s in records if e&3==3}
-    for lo,hi in ((0x5440,0x62C0),(0x669C,0x7AD4)):
+    for lo,hi in ((0x5440,0x62C0),(0x669C,0x8B48)):
         for at in range(lo,hi,4):
             word=read32(data,at)
             if word>>26!=3:continue
@@ -76,3 +98,19 @@ def patch(data, records):
             records[:]=[(e,s) for e,s in records if (e&~3)!=at]
             audit.append(dict(offset=at,callback=HOST+kind*4,target=target))
     return audit
+
+
+def convert(source: bytes) -> bytes:
+    """Cars-only native menu: retain all eighteen retail arena entries."""
+    import struct
+    from dreamland_overlay import relocations
+    records = relocations(source)
+    data = bytearray(source[:read32(source, 0)])
+    patch(data, records)
+    put32(data, 0, len(data))
+    for entry, symbol in records:
+        data.extend(struct.pack('<I', entry))
+        if symbol is not None:
+            data.extend(struct.pack('<I', symbol))
+    data.extend(struct.pack('<I', 0xFFFFFFFF))
+    return bytes(data)

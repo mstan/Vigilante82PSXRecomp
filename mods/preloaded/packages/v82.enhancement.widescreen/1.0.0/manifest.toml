@@ -1,7 +1,7 @@
 format_version = 5
 id = "v82.enhancement.widescreen"
 version = "1.0.0"
-name = "Vigilante 8: 2nd Offense Custom Renderer"
+name = "Widescreen"
 author = "mstan"
 description = "Native-wide battle rendering with Vigilante 8: 2nd Offense-specific terrain, sky, HUD and match detection hooks. Menus, briefings and FMVs keep their authored 4:3 layout."
 resolver = "declarative"
@@ -12,7 +12,7 @@ game_id = "SLUS-00868"
 
 [[feature]]
 id = "widescreen"
-name = "Custom Renderer"
+name = "Widescreen"
 description = "Enable Vigilante 8: 2nd Offense's native-wide battle view. The render target, terrain selection and sky grow with the view; the HUD anchors to the new screen edges."
 group = "Display"
 default_enabled = false
@@ -45,3 +45,14 @@ label = "32:9"
 [[plugin]]
 feature = "widescreen"
 id = "v82.widescreen"
+
+[[feature]]
+id = "netplay-view"
+name = "Enhanced multiplayer renderer"
+description = "Use the enhanced battle renderer for fixed multiplayer views."
+default_enabled = true
+hidden = true
+
+[[plugin]]
+feature = "netplay-view"
+id = "v82.netplay-view"

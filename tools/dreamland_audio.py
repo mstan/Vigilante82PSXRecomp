@@ -23,7 +23,8 @@ def resident_sample(samples, loop_start, pitch, encoder: Path):
         with wave.open(str(source),'wb') as stream:
             stream.setnchannels(1);stream.setsampwidth(2);stream.setframerate(22050)
             stream.writeframes(pcm.tobytes())
-        subprocess.run([str(encoder),'-q','-t','spu','-f','22050','-a','16','-D',str(source),str(output)],check=True)
+        subprocess.run([str(encoder),'-q','-t','spu','-f','22050','-a','16','-D',str(source),str(output)],check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                       creationflags=getattr(subprocess,"CREATE_NO_WINDOW",0))
         frames=bytearray(output.read_bytes())
     count=(len(pcm)+27)//28
     if len(frames)<count*16:raise ValueError('SPU encoder truncated an effect')

@@ -45,6 +45,31 @@ int main() {
     selector::apply_npcs(&c);
     check(psx_mod_read_byte(0x8006B8F6)==proxy,"four-player mode overwrote a local player");
     psx_mod_write_byte(c.gpr[28]+0x31,0);
+    // The simultaneous two-player selector has independent native slots and
+    // input words. Navigation and confirmation must not inherit P1 state.
+    const uint32_t stack=0x801F0000;c.gpr[29]=stack-24;
+    selector::two_begin();c.gpr[23]=0;
+    wr(stack+0xE4,stack+0x58);wr(stack+0xE8,stack+0x60);
+    wr(stack+0x60,0);wr(stack+0x64,0);wr(stack+0x58,17);
+    wr(0x8006B508,0x80000000);wr(0x8006B50C,0);
+    selector::two_navigate(&c);
+    check(selector::two_guest(0)==12&&selector::two_guest(1)==-1&&rd(stack+0x58)==0,
+          "P1 wrap changed P2's independent carousel");
+    c.gpr[23]=1;wr(stack+0xE4,stack+0x5C);wr(stack+0xE8,stack+0x64);
+    wr(stack+0x5C,17);wr(0x8006B508,0);wr(0x8006B50C,0x80000000);
+    selector::two_navigate(&c);
+    check(selector::two_guest(0)==12&&selector::two_guest(1)==12,
+          "P2 selector ignored P2 input");
+    wr(0x8006B50C,0);selector::two_navigate(&c);
+    wr(0x8006B50C,0x80000000);wr(stack+0x5C,0);selector::two_navigate(&c);
+    check(selector::two_guest(1)==11&&selector::two_identity(0,0)!=selector::two_identity(1,0),
+          "distinct originals compared as the same retail proxy");
+    selector::two_commit(&c);
+    check(psx_mod_read_byte(c.gpr[28]+0x1104)==76&&psx_mod_read_byte(c.gpr[28]+0x1105)==75,
+          "two-player confirmation lost an imported identity");
+    selector::two_end(&c);
+    check(rd(stack+0x58)==76&&rd(stack+0x5C)==75&&!rd(selector::TwoActive),
+          "packed native return lost independent players");
     // The native preview cleanup may have already freed its editable group.
     package.banks.resize(1);const auto runtime=allocate(32),bin=allocate(32),group=allocate(32);
     wr(runtime+16,group);wr(bin+4,bin+16);wr(bank_state(0),runtime);wr(bank_state(0)+4,bin);

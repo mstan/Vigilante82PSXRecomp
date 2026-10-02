@@ -1,0 +1,6 @@
+[submodule "psxrecomp-v4"]
+	path = psxrecomp-v4
+	url = git@github.com:mstan/psxrecomp-v82.git
+[submodule "recomp-ui"]
+	path = recomp-ui
+	url = https://github.com/mstan/recomp-ui.git

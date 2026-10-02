@@ -5,6 +5,7 @@
 #include <array>
 #include <cstring>
 #include <string>
+extern "C" void v82_content_reset();
 extern "C" bool v82_presentation_file(const uint8_t**,uint64_t*);
 
 namespace dreamland {
@@ -95,6 +96,7 @@ void entry(CPUState* c,uint32_t address) {
             if(i==2 && psx_mod_read_byte(gp+0xC28)!=18) {
                 psx_mod_counter_add("v82.dreamland.retail_sounds",1);return;
             }
+            if(i!=5 && !files[i].data)return;
             const auto descriptor=Meta+0x100+i*32;
             wr(descriptor+0xC,Extent+i*0x10000);wr(descriptor+0x10,uint32_t(files[i].size));
             c->gpr[2]=descriptor;psx_mod_finish_function(c);
@@ -149,9 +151,20 @@ void activate() {
     active=true;
     psx_mod_counter_add("v82.dreamland.activated",1);
 }
+void activate_menus() {
+    active=false;force_match=false;
+    v82_content_reset();
+    for(auto& file:files){file.data=nullptr;file.size=0;}
+    // Runs first through package dependencies; Dreamland may then replace the
+    // menu and populate its arena resources. Cars alone need no N64 assets.
+    if(!psx_mod_current_resource_bytes("menu",&files[3].data,&files[3].size) ||
+       !psx_mod_set_main_ram_8mb(1))return;
+    active=true;
+}
 PSX_MOD_CONSTRUCTOR(register_dreamland) {
+    psx_mod_register_activation_plugin("v82.content-files",activate_menus);
     psx_mod_register_activation_plugin(Plugin,activate);
-    for(const auto& h:Hooks)psx_mod_register_function_entry_plugin(Plugin,h.address,entry);
+    for(const auto& h:Hooks)psx_mod_register_function_entry_plugin("v82.content-files",h.address,entry);
     for(uint32_t pc=Hazard;pc<=ArenaEvent;pc+=4)psx_mod_register_guest_function_plugin(Plugin,pc,helper);
 }
 }

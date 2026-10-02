@@ -39,7 +39,7 @@ def outcomes(volume, files, output):
             entry=files[f"SOUNDS/{source}.XA"]
             count=(entry["size"]+2047)//2048
             with volume.path.open("rb") as stream:
-                stream.seek(entry["lba"]*2352);raw=stream.read(count*2352)
+                stream.seek((volume.start_sector+entry["lba"])*2352);raw=stream.read(count*2352)
             if len(raw)!=count*2352:raise ValueError("Truncated result bank")
             bank=folder/(source+".XA")
             bank.write_bytes(b"".join(raw[i+16:i+2352] for i in range(0,len(raw),2352)))

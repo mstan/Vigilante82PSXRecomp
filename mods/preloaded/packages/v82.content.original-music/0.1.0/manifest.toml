@@ -1,0 +1,62 @@
+format_version = 9
+id = "v82.content.original-music"
+version = "0.1.0"
+name = "Original Vigilante 8 soundtrack"
+author = "mstan; GTTeancum; flaffy"
+description = "Adds twelve original songs to the native track selector and rotation, preserving full-quality CD audio."
+resolver = "declarative"
+prepare = "v82.media"
+save_compatibility = "isolated"
+
+[[target]]
+game_id = "SLUS-00868"
+
+[[feature]]
+id = "music"
+name = "Original soundtrack"
+default_enabled = false
+
+[[option]]
+feature = "music"
+id = "album"
+label = "Soundtrack"
+type = "choice"
+default = "Both"
+
+[[option.choice]]
+value = "Both"
+label = "Both games"
+[[option.choice]]
+value = "Original"
+label = "Vigilante 8"
+[[option.choice]]
+value = "Sequel"
+label = "2nd Offense"
+
+[[resource]]
+feature = "music"
+id = "music"
+label = "Prepared original CD audio (V8MUSIC.DAT)"
+format = "file"
+hidden = true
+required = true
+size = 345680600
+sha256 = "787313e81a9721aac2c5b541830c2ae34497b7d0ac2ba671378f8c430e5f5265"
+
+[[plugin]]
+feature = "music"
+id = "v82.music"
+
+[[resource]]
+feature = "music"
+id = "original"
+label = "Vigilante 8 USA v1.0 disc"
+description = "Shared with Original vehicles. Select the full disc image with its audio tracks."
+format = "psx-disc"
+input_only = true
+shared_source = "v8.original"
+file_patterns = "*.cue;*.bin;*.chd"
+file_description = "Vigilante 8 disc image"
+required = true
+size = 223959040
+sha256 = "1133d14a882bf65c061aa24d7e81f875368dbb8f5cd33abdc5cbd5b26f38ffbf"

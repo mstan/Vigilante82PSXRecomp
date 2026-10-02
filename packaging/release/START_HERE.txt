@@ -1,0 +1,31 @@
+Vigilante82PSXRecomp v0.1.0 - initial private playtest
+
+Windows: extract the entire ZIP, then run Vigilante82PSXRecomp.exe.
+Linux: chmod +x the AppImage, then run it. If FUSE is unavailable, use
+./Vigilante82PSXRecomp-v0.1.0-linux-x64.AppImage --appimage-extract-and-run
+Linux requires glibc 2.39 or newer (Ubuntu 24.04 or a comparable newer system).
+
+1. The launcher selects bundled OpenBIOS automatically. An owner-supplied
+   SCPH1001.BIN is also supported.
+2. Select your complete Vigilante 8: 2nd Offense USA disc (SLUS-00868).
+   CUE/BIN or CHD is supported; netplay requires all 17 tracks.
+3. Optional original cars/music need your Vigilante 8 USA v1.0 disc.
+   Super Dreamland 64 needs your Vigilante 8 USA N64 ROM.
+   Select source media in Mods. Conversion happens automatically on Play.
+   No Python installation or manual extraction is needed.
+4. Configure your controller and play. For netplay, configure Player 1 / Netplay
+   locally on each computer, then choose 2 Player > Versus or Cooperative.
+
+Both peers need this same release and matching content/mod choices.
+Native-wide and High Frame Rate are optional Mods. Multiplayer locks the
+chosen 16:9/21:9 view; other offline view choices use fixed 16:9 online.
+High Frame Rate is experimental: the HUD can jitter or change vehicle icons
+between extra frames. This is a known issue deferred to the next update.
+
+Settings, saves and converted content are writable user data. Linux stores
+them under ~/.local/share/Vigilante82PSXRecomp by default; Windows uses the
+extracted folder plus the user's external content cache.
+
+This package contains no disc images, donor ROMs, converted donor assets,
+retail BIOS image, or saved games. It includes OpenBIOS and dependency notices.
+Read RELEASE_NOTES.md for validation and known limitations.

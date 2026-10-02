@@ -36,14 +36,14 @@ int main() {
     test_spu_write=[](uint32_t p,uint32_t v){check(p==0x1F801DA6,"unexpected SPU write");transfer=v;};
     test_spu_dma=[](uint32_t){bytes_written+=4;};
     test_dispatch=[](CPUState* cpu,uint32_t fn,uint32_t){
-        voice_calls.push_back(fn);check(cpu->gpr[4]==1||cpu->gpr[4]==2,"wrong speech channel");
-        if(fn==0x8001E188)check(cpu->gpr[5]==0x80091000&&cpu->gpr[6]==13+cpu->gpr[4],"selection borrowed retail sample");
+        voice_calls.push_back(fn);check(cpu->gpr[4]>=1&&cpu->gpr[4]<=4,"wrong speech channel");
+        if(fn==0x8001E188)check(cpu->gpr[5]==0x80091000&&cpu->gpr[6]==14+((cpu->gpr[4]-1)&1),"selection borrowed retail sample");
     };
-    for(unsigned i=0;i<13;++i)for(unsigned channel=1;channel<=2;++channel) {
+    for(unsigned i=0;i<13;++i)for(unsigned channel=1;channel<=4;++channel) {
         c.gpr[4]=channel;transfer=0x7777;bytes_written=0;voice_calls.clear();
         presentation::voice(&c,i,shell);
         check(bytes_written==16&&transfer==0x7777&&voice_calls==std::vector<uint32_t>({0x8001DE78,0x8001E188}),"speech slot transfer or native stop/play lifecycle incorrect");
-        check(psx_mod_read_half(bank+4+(13+channel)*4+2)==0x900+i,"authored voice pitch lost");
+        check(psx_mod_read_half(bank+4+(14+((channel-1)&1))*4+2)==0x900+i,"authored voice pitch lost");
     }
     std::vector<uint8_t> xa(216+26*8*2336);
     auto put=[&](unsigned p,unsigned v){for(unsigned j=0;j<4;++j)xa[p+j]=uint8_t(v>>(8*j));};
