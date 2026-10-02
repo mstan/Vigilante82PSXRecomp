@@ -248,3 +248,28 @@ this was a focused startup regression, not a retail-map test campaign.
 All donor media, prepared assets, saves and screenshots live outside the source
 repository. The initial private v0.1.0 playtest release documents the remaining
 HUD jitter and certification limits in RELEASE_NOTES.md.
+
+
+### High Frame Rate HUD follow-up (2026-10-02)
+
+The split-screen guest loop pipelines world(0) with HUD(1), then world(1)
+with HUD(0). Replaying one complete section placed the other player's HUD on
+an extra frame. Extra frames now replay the local world and its matching HUD
+from separately captured CPU contexts. The pending HUD context is retained
+until the next native DrawSync, rather than overwritten by that frame's HUD.
+The framework also keeps bounded replay out of compiled continuations that
+would run past its stop PC.
+
+A comparison build reproduces switching car icons and shifting HUD bounds.
+The corrected build was inspected across 200 consecutive actual presentations
+per player at each fixed aspect, 16:9 and 21:9, including multiple swaps within
+one guest frame. Each player retains its own icon and HUD placement while the
+world continues to render extra frames. More than 2,800 verified replay passes
+and 2,100 actual extra presentations completed without span failures, state
+mismatches, watchdogs or VRAM leaks. Meteor Crater single-player was entered
+through the menus to check the original full-screen replay path as well.
+
+Windows and Linux builds pass all 21 title checks (including the owner car
+package check), plus six focused framework checks. Captures and prepared media
+remain outside Git under the isolated `v82-hud-fix-20261002` run. This fix is on
+`fix/v82-hfr-hud`; the previously published v0.1.0 assets are unchanged.

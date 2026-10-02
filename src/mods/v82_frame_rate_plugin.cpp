@@ -56,6 +56,10 @@ constexpr uint32_t SetDrawEnv = 0x8005CDD4, DrawOTag = 0x8005C57C, DrawSync = 0x
 constexpr uint32_t ActorTableOffset = 0x4818;     // -0x4818($fp)
 constexpr uint32_t SplitStart[2] = {0x80013E90, 0x800141FC};
 constexpr uint32_t SplitEnd[2] = {0x80014154, 0x80014358};
+// The split loop pipelines world(0) with HUD(1), then world(1) with
+// HUD(0). Replaying one entire section pairs the wrong driver's HUD with
+// the local camera. Replay its world and the opposite section's HUD instead.
+constexpr uint32_t SplitHudStart[2] = {0x80013F88, 0x800142F4};
 constexpr uint32_t SplitDone = 0x800143F4;
 constexpr uint32_t SplitSynced = 0x8001415C;
 
@@ -318,6 +322,8 @@ struct SectionEntry {
     uint32_t gpr[32], hi, lo, gte_data[32], gte_ctrl[32];
 } section;
 SectionEntry split_section[2];
+SectionEntry split_hud[2];
+SectionEntry pending_hud;
 Snapshot split_snapshots[2][2];
 Matrix split_camera[2];
 uint16_t split_focal[2];
@@ -383,8 +389,17 @@ int pass(CPUState* cpu, void*, uint32_t alpha_q16) {
     std::memcpy(cpu->gte_ctrl, section.gte_ctrl, sizeof section.gte_ctrl);
     pass_alpha = t;
     in_pass = true;
-    const int ok = psx_mod_run_guest_span(cpu, work.split ? SplitStart[work.camera] : SectionStart,
-                                             work.split ? SplitEnd[work.camera] : SectionEnd);
+    int ok = psx_mod_run_guest_span(cpu, work.split ? SplitStart[work.camera] : SectionStart,
+                                       work.split ? SplitHudStart[work.camera] : SectionEnd);
+    if (ok && work.split) {
+        const unsigned hud_section = work.camera ^ 1;
+        const SectionEntry& hud = pending_hud;
+        std::memcpy(cpu->gpr, hud.gpr, sizeof hud.gpr);
+        cpu->hi = hud.hi; cpu->lo = hud.lo;
+        std::memcpy(cpu->gte_data, hud.gte_data, sizeof hud.gte_data);
+        std::memcpy(cpu->gte_ctrl, hud.gte_ctrl, sizeof hud.gte_ctrl);
+        ok = psx_mod_run_guest_span(cpu, SplitHudStart[hud_section], SplitEnd[hud_section]);
+    }
     in_pass = false;
     if (!ok) { psx_mod_counter_add("v82.fr.span_failed", 1); return 0; }
     // Submit as the screen gets it: world OT (the VBlank callback's DrawOTag,
@@ -486,6 +501,7 @@ void on_split_start(CPUState* cpu, uint32_t pc) {
     camera_slot = pc == SplitStart[1] ? 1 : 0;
     if (!camera_slot) {
         split_section[0].valid = split_section[1].valid = false;
+        split_hud[0].valid = split_hud[1].valid = false;
         split_camera_seen[0] = split_camera_seen[1] = false;
     }
     SectionEntry& s = split_section[camera_slot];
@@ -495,6 +511,16 @@ void on_split_start(CPUState* cpu, uint32_t pc) {
     std::memcpy(s.gte_ctrl, cpu->gte_ctrl, sizeof s.gte_ctrl);
     s.valid = true;
     split_node[camera_slot] = camera_node(rd(camera_slot ? cpu->gpr[21] + 4 : cpu->gpr[30] - ActorTableOffset));
+}
+
+void on_split_hud(CPUState* cpu, uint32_t pc) {
+    if (g_psx_render_pass_active || psx_netplay_is_resimulating()) return;
+    SectionEntry& s = split_hud[pc == SplitHudStart[1] ? 1 : 0];
+    std::memcpy(s.gpr, cpu->gpr, sizeof s.gpr);
+    s.hi = cpu->hi; s.lo = cpu->lo;
+    std::memcpy(s.gte_data, cpu->gte_data, sizeof s.gte_data);
+    std::memcpy(s.gte_ctrl, cpu->gte_ctrl, sizeof s.gte_ctrl);
+    s.valid = true;
 }
 
 void on_split_synced(CPUState* cpu, uint32_t) {
@@ -507,6 +533,7 @@ void on_split_done(CPUState* cpu, uint32_t) {
     if (g_psx_render_pass_active || !psx_netplay_active()) return;
     if (psx_netplay_is_resimulating() || rd(GP + 0x2C) != 2 ||
         !split_section[0].valid || !split_section[1].valid ||
+        !split_hud[0].valid || !split_hud[1].valid ||
         !split_camera_seen[0] || !split_camera_seen[1]) {
         for (auto& pair : split_snapshots) for (auto& s : pair) s.valid = false;
         split_pending = false;
@@ -523,6 +550,9 @@ void on_split_done(CPUState* cpu, uint32_t) {
     if (!before.valid || ticks == 0 || ticks > 8 || now.vblank - before.vblank > 8) return;
     if (!prepare(before, now, ticks)) return;
     section = split_section[camera];
+    // Rendering waits for the next native DrawSync. Its first HUD hook
+    // has already run by then, so keep the pending frame's CPU context.
+    pending_hud = split_hud[camera ^ 1];
     work.split = true; work.slot = slot; work.camera = camera; work.buffer = rd(GP + 0x24);
     if (work.buffer > 1) return;
     split_ticks = ticks; split_pending = true;
@@ -541,6 +571,7 @@ void activate() {
     snapshots[0].valid = snapshots[1].valid = false;
     section.valid = camera_seen = false;
     split_section[0].valid = split_section[1].valid = false;
+    split_hud[0].valid = split_hud[1].valid = false;
     split_pending = false;
     for (auto& pair : split_snapshots) for (auto& s : pair) s.valid = false;
     crossfade = false;
@@ -559,6 +590,8 @@ PSX_MOD_CONSTRUCTOR(v82_register_frame_rate_plugin) {
     psx_mod_register_instruction_plugin(Plugin, SectionStart, SectionStartWord, on_section_start);
     psx_mod_register_instruction_plugin(Plugin, SplitStart[0], 0x0C0052CF, on_split_start);
     psx_mod_register_instruction_plugin(Plugin, SplitStart[1], 0x0C0052CF, on_split_start);
+    psx_mod_register_instruction_plugin(Plugin, SplitHudStart[0], 0x02002021, on_split_hud);
+    psx_mod_register_instruction_plugin(Plugin, SplitHudStart[1], 0x02002021, on_split_hud);
     psx_mod_register_instruction_plugin(Plugin, SplitDone, 0x080051CF, on_split_done);
     psx_mod_register_instruction_plugin(Plugin, SplitSynced, 0x3C048007, on_split_synced);
 }

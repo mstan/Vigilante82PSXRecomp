@@ -4,7 +4,8 @@ Private **v0.1.0** playtest downloads are available on the
 [releases page](https://github.com/mstan/Vigilante82PSXRecomp/releases/tag/v0.1.0).
 See [START_HERE](packaging/release/START_HERE.txt) for setup and
 [release notes](RELEASE_NOTES.md) for known issues. High Frame Rate's multiplayer
-HUD jitter is deferred to a follow-up.
+HUD jitter is fixed on `fix/v82-hfr-hud`; the v0.1.0 downloads retain the
+original behavior. See [playtest validation](docs/PLAYTEST.md) for the follow-up.
 
 One combined Vigilante 8 game under **psxrecomp**, using USA 2nd Offense
 (`SLUS-00868`) as its gameplay base and directly adapting the authorized
