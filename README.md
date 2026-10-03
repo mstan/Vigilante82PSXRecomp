@@ -1,10 +1,10 @@
 # Vigilante82PSXRecomp
 
-Private **v0.1.1** playtest downloads are available on the
-[releases page](https://github.com/mstan/Vigilante82PSXRecomp/releases/tag/v0.1.1).
+Private **v0.1.2** playtest downloads are available on the
+[releases page](https://github.com/mstan/Vigilante82PSXRecomp/releases/tag/v0.1.2).
 See [START_HERE](packaging/release/START_HERE.txt) for setup and
-[release notes](RELEASE_NOTES.md) for known issues. v0.1.1 fixes High Frame
-Rate's multiplayer HUD jitter and switching vehicle icons. See
+[release notes](RELEASE_NOTES.md) for known issues. v0.1.2 fixes water disappearing at ultrawide screen edges
+and includes the multiplayer HUD fixes from v0.1.1. See
 [playtest validation](docs/PLAYTEST.md) for the follow-up.
 
 One combined Vigilante 8 game under **psxrecomp**, using USA 2nd Offense
@@ -85,10 +85,9 @@ logic, timers, audio and network simulation retain their original cadence.
 Rendering remains at native 1x; the selected rate is a target and expensive
 frames may render fewer intermediate images.
 
-The current integration build is `build-enhanced-net/Vigilante82PSXRecomp.exe`,
-using the isolated framework worktree `../_wt-v82-enhanced-net-fw` (base
-`9c0c98bd` plus the preserved netplay/content changes). The original high-frame-rate
-worktrees remain separate. This integration is uncommitted.
+The release builds use the pinned `psxrecomp-v4` framework and `recomp-ui`
+submodules. Windows production output is under `build-release`; Linux uses
+a native build directory. See [release build instructions](docs/BUILD_RELEASE.md).
 
 Validation: two isolated headless peers completed native menu selection and
 entered a Versus match; eight independent input checks routed to the correct

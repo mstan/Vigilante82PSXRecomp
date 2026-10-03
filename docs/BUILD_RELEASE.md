@@ -1,4 +1,4 @@
-# Building v0.1.0
+# Building v0.1.2
 
 The private title repository pins the matching private framework and shared UI
 as submodules. A collaborator needs access to both `mstan/Vigilante82PSXRecomp`

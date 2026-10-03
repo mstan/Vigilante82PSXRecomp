@@ -21,6 +21,29 @@ uint32_t vblanks=0,last_world=0,sky_slot=0,sky_head=0,hud_slot=0,hud_head=0;
 uint32_t hud_mode=0;
 bool enabled=false,world_seen=false;
 int cull_margin=0;
+uint32_t water_base_start=0;
+int water_base_margin=0;
+// The native base layer emits seven-word, screen-space water strips. Its
+// widened analytic plane must be shifted back around the original camera.
+void finish_water_base(uint32_t end){
+    const auto start=water_base_start;const int m=water_base_margin;
+    water_base_start=0;water_base_margin=0;
+    if(!start || !m || end==start)return;
+    if(start<Pool || end<start || start>=Pool+2*PoolBytes || end>Pool+((start-Pool)/PoolBytes+1)*PoolBytes || (end-start)%28){
+        psx_mod_counter_add("v82.ws.water_base_rejected",1);return;
+    }
+    for(auto p=start;p<end;p+=28){
+        if((psx_mod_read_word(p)>>24)!=6 || psx_mod_read_word(p+4)!=0xE1000600 ||
+           psx_mod_read_byte(p+11)!=0x2A){
+            psx_mod_counter_add("v82.ws.water_base_rejected",1);return;
+        }
+    }
+    for(auto p=start;p<end;p+=28)for(unsigned i=0;i<4;++i){
+        const auto a=p+12+4*i,v=psx_mod_read_word(a);
+        psx_mod_write_word(a,(v&0xFFFF0000)|uint16_t(int16_t(v)-m));
+    }
+    psx_mod_counter_add("v82.ws.water_base_packets",(end-start)/28);
+}
 // Counters observe the native walker and plane test without changing results.
 int64_t object_planes[3]={};
 int32_t object_radius=0;
@@ -88,6 +111,13 @@ void tag_chain(uint32_t slot,uint32_t stop,bool sky,bool compact_hud=false){
 }
 struct Site{uint32_t pc,word;};
 constexpr Site instructions[]={
+    {0x80015FB0,0x4891F000}, // base-water viewport loads retired
+    {0x8001665C,0x03E00008}, // completed base-water packet interval
+    {0x800166BC,0x87A70014}, // textured-water viewport loads retired
+    {0x80016DD8,0x8FAF0068}, // observe water grid before native 32x32 cap
+    {0x80016FE8,0x04A10002}, // water vertex left outcode
+    {0x80016FF4,0x14400002}, // water vertex right outcode
+
     {0x80024E6C,0x14200005}, // subdivision right bound, all X loads retired
     {0x80024E84,0x05010007}, // subdivision left bound, coordinate copies only
     {0x800250C4,0x14200005}, // subdivision right bound, all X loads retired
@@ -159,6 +189,60 @@ bool widen_subdivision(CPUState* c,uint32_t pc,int m){
     }
     return false;
 }
+// Keep the retail 32x32 wave/visibility buffers. Wide views need more cells,
+// so run the native water renderer over adjacent grids sharing one vertex.
+// Wave phase is world-based; shared edges are emitted exactly once.
+struct WaterGrid {
+    bool active=false,planned=false;
+    unsigned tile=0,count=1,columns=1,rows=1;
+    int x0=0,z0=0,x1=0,z1=0;
+} water_grid;
+void plan_water_grid(CPUState* c){
+    if(!water_grid.active)return;
+    auto& g=water_grid;
+    if(!g.planned){
+        g.planned=true;g.x0=int32_t(c->gpr[14]);g.z0=int32_t(rd(c->gpr[29]+0xA0));
+        g.x1=int32_t(rd(c->gpr[29]+0x68));g.z1=int32_t(rd(c->gpr[29]+0x6C));
+        const int64_t dx=int64_t(g.x1)-g.x0,dz=int64_t(g.z1)-g.z0;
+        if(dx<=0 || dz<=0)return;
+        const int64_t cols=(dx+30)/31;
+        // The retail row setup also compares row index with the X span.
+        // Balance columns instead of leaving a tiny final column, then keep
+        // each batch's Z span no greater than its shortest X span.
+        const int64_t min_width=dx/cols,rows=(dz+min_width-1)/min_width;
+        if(cols>16 || rows>16 || cols*rows>16){
+            psx_mod_counter_add("v82.ws.water_grid_rejected",1);return;
+        }
+        g.columns=unsigned(cols);g.rows=unsigned(rows);g.count=unsigned(cols*rows);
+        if(g.count>1)psx_mod_counter_add("v82.ws.water_grid_split",1);
+    }
+    if(g.count<=1)return;
+    const int64_t dx=int64_t(g.x1)-g.x0,dz=int64_t(g.z1)-g.z0;
+    const auto col=g.tile%g.columns,row=g.tile/g.columns;
+    c->gpr[14]=uint32_t(g.x0+dx*col/g.columns);
+    wr(c->gpr[29]+0xA0,uint32_t(g.z0+dz*row/g.rows));
+    wr(c->gpr[29]+0x68,uint32_t(g.x0+dx*(col+1)/g.columns));
+    wr(c->gpr[29]+0x6C,uint32_t(g.z0+dz*(row+1)/g.rows));
+}
+void render_water_grids(CPUState* c){
+    if(water_grid.active)return;
+    const uint32_t sp=c->gpr[29],ra=c->gpr[31];
+    const uint32_t args[]={c->gpr[4],c->gpr[5],c->gpr[6],c->gpr[7]};
+    water_grid={};water_grid.active=true;
+    for(;water_grid.tile<water_grid.count;++water_grid.tile){
+        const auto base=Pool+(rd(GP+0x20)&1)*PoolBytes,cur=rd(GP+0x610);
+        // At most 31x31 cells, each emitting up to two 32-byte packets.
+        if(cur<base || cur>base+PoolBytes-0x11000){
+            psx_mod_counter_add("v82.ws.water_budget_reject",1);break;
+        }
+        c->gpr[29]=sp-0x40;
+        for(unsigned i=0;i<4;++i)c->gpr[4+i]=args[i];
+        psx_dispatch_call(c,0x80016664,ra);
+        psx_mod_counter_add("v82.ws.water_grid_tiles",1);
+    }
+    water_grid={};c->gpr[29]=sp;c->gpr[31]=ra;
+    psx_mod_finish_function(c);
+}
 void instruction(CPUState* c,uint32_t pc){
     if(!renderer_enabled()||c->gpr[28]!=GP)return;
     const auto m=margin();
@@ -170,6 +254,25 @@ void instruction(CPUState* c,uint32_t pc){
     else if(pc==0x8001CE14){if(m)tag_chain(sky_slot,sky_head,true);sky_slot=0;}
     else if(m && battle_view()){
         if(widen_subdivision(c,pc,m))return;
+        if(pc==0x80015FB0 && world() && int(c->gpr[13])==viewport_width()){
+            water_base_start=c->gpr[8];water_base_margin=m;c->gpr[13]+=2*m;
+            psx_mod_counter_add("v82.ws.water_base_widened",1);return;
+        }
+        if(pc==0x8001665C){finish_water_base(c->gpr[8]);return;}
+        if(pc==0x800166BC && world() && int(c->gpr[23])==viewport_width()){
+            c->gpr[23]+=2*m;psx_mod_counter_add("v82.ws.water_surface_widened",1);return;
+        }
+        if(pc==0x80016DD8 && world()){
+            const int64_t dx=int64_t(int32_t(rd(c->gpr[29]+0x68)))-int32_t(c->gpr[14]);
+            const int64_t dz=int64_t(int32_t(rd(c->gpr[29]+0x6C)))-int32_t(rd(c->gpr[29]+0xA0));
+            psx_mod_counter_add("v82.ws.water_grid_samples",1);
+            if(dx>=32 || dz>=32)psx_mod_counter_add("v82.ws.water_grid_needs_split",1);
+            plan_water_grid(c);
+            return;
+        }
+        if(pc==0x80016FE8 && world()){c->gpr[5]+=m;return;}
+        if(pc==0x80016FF4 && world()){c->gpr[2]=int32_t(c->gpr[5])<=viewport_width()+2*m;return;}
+
         if(pc==0x8001C400 || pc==0x8001C43C || pc==0x8001C4B4 || pc==0x8001C4F0){
             compare_terrain_product(c);
         }else if(pc==0x8001C620){
@@ -245,6 +348,7 @@ void instruction(CPUState* c,uint32_t pc){
     }
 }
 constexpr Site functions[]={
+    {0x80016664,0x27BDFF38},
     {0x8001C134,0x3C011F80},{0x8001BE68,0x27BDFFF0},{0x800288E0,0x23BDFFF0},
     {0x8002E22C,0x00A03021},
     {0x8001C910,0x27BDFFA8},{0x80037A00,0x27BDFFB8},{0x8003827C,0x27BDFFE8},
@@ -256,6 +360,7 @@ void entry(CPUState* c,uint32_t pc){
     if(pc==0x8001C134){world_seen=true;last_world=vblanks;}
     const auto m=margin();
     if(!m || !battle_view())return;
+    if(pc==0x80016664){if(world())render_water_grids(c);return;}
     if(pc==0x8002E22C){
         const auto p=c->gpr[4];object_sample=false;
         if(!ram(p) || (p&0x1FFFFFFF)>0x7FFFF4)return;
@@ -308,6 +413,7 @@ void entry(CPUState* c,uint32_t pc){
 }
 void activate(){
     enabled=false;world_seen=false;vblanks=last_world=sky_slot=hud_slot=hud_mode=0;
+    water_base_start=0;water_base_margin=0;water_grid={};
     if(!psx_mod_set_main_ram_8mb(1))return;
     char view[16]="Fit";
     if(!psx_mod_option_value("v82.enhancement.widescreen","widescreen","aspect",view,sizeof(view)))std::strcpy(view,"Fit");

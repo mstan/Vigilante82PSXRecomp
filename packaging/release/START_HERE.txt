@@ -1,8 +1,8 @@
-Vigilante82PSXRecomp v0.1.1 - private playtest update
+Vigilante82PSXRecomp v0.1.2 - private playtest update
 
 Windows: extract the entire ZIP, then run Vigilante82PSXRecomp.exe.
 Linux: chmod +x the AppImage, then run it. If FUSE is unavailable, use
-./Vigilante82PSXRecomp-v0.1.1-linux-x64.AppImage --appimage-extract-and-run
+./Vigilante82PSXRecomp-v0.1.2-linux-x64.AppImage --appimage-extract-and-run
 Linux requires glibc 2.39 or newer (Ubuntu 24.04 or a comparable newer system).
 
 1. The launcher selects bundled OpenBIOS automatically. An owner-supplied
@@ -19,9 +19,8 @@ Linux requires glibc 2.39 or newer (Ubuntu 24.04 or a comparable newer system).
 Both peers need this same release and matching content/mod choices.
 Native-wide and High Frame Rate are optional Mods. Multiplayer locks the
 chosen 16:9/21:9 view; other offline view choices use fixed 16:9 online.
-High Frame Rate remains experimental. v0.1.1 fixes multiplayer HUD position
-jitter and incorrect vehicle icons between extra frames, and keeps weapon
-icons and ammo counts together in the compact multiplayer HUD.
+High Frame Rate remains experimental. v0.1.2 fixes water disappearing at
+ultrawide screen edges. The multiplayer HUD fixes from v0.1.1 are included.
 
 Settings, saves and converted content are writable user data. Linux stores
 them under ~/.local/share/Vigilante82PSXRecomp by default; Windows uses the

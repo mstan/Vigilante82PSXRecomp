@@ -3,6 +3,7 @@
 static std::vector<std::pair<uint32_t,int>> hud_tags;
 static std::vector<uint32_t> sky_tags;
 extern "C" {
+void psx_dispatch_call(CPUState*,uint32_t,uint32_t){throw std::runtime_error("unexpected guest call in widescreen unit test");}
 void gpu_ws_tag_hud_prim(uint32_t p,int edge){hud_tags.emplace_back(p,edge);}
 void gpu_ws_tag_background_prim(uint32_t p){sky_tags.push_back(p);}
 }
@@ -152,6 +153,54 @@ int main(){
     wr(0x8002010C,0);wr(0x80020110,12|(12<<16));
     entry(&c,0x8003827C);
     check(hud_tags.size()==1&&hud_tags[0].second==1,"single-player right HUD retains its native edge after a split HUD");
+    // Every cell belongs to exactly one bounded native batch. Adjacent batches
+    // share their edge vertices, with no transparent-water overlap or holes.
+    const auto saved_sp=c.gpr[29];c.gpr[29]=0x80030000;
+    for(int dx:{16,31,32,41,48,64,93})for(int dz:{12,31,32,47,63}){
+        water_grid={};water_grid.active=true;
+        c.gpr[14]=850;wr(c.gpr[29]+0xA0,1250);
+        wr(c.gpr[29]+0x68,850+dx);wr(c.gpr[29]+0x6C,1250+dz);
+        std::vector<unsigned> seen(dx*dz);
+        for(;water_grid.tile<water_grid.count;++water_grid.tile){
+            plan_water_grid(&c);
+            const int x=int(c.gpr[14])-850,z=int(rd(c.gpr[29]+0xA0))-1250;
+            const int xe=int(rd(c.gpr[29]+0x68))-850,ze=int(rd(c.gpr[29]+0x6C))-1250;
+            check(x>=0 && z>=0 && xe<=dx && ze<=dz && xe>x && ze>z,"water batch stays inside requested grid");
+            check(xe-x<=31 && ze-z<=31 && ze-z<=xe-x,"water batch fits native buffers and row setup");
+            for(int zz=z;zz<ze;++zz)for(int xx=x;xx<xe;++xx)++seen[zz*dx+xx];
+        }
+        for(auto count:seen)check(count==1,"water grid has no omitted or duplicated cells");
+    }
+    water_grid={};c.gpr[29]=saved_sp;
+    // Both water layers cover the same reveal interval without moving the
+    // native camera centre or changing Y/depth/colour. Exercise flat and rolled
+    // strip shapes, and the horizontal outcodes used by textured water.
+    for(int width:{320,160})for(int m:{53,120,267}){
+        wr(GP+0xEDC,width);netplay_active=width==160;netplay_wide_width=width+2*m;
+        cull_margin=m;const auto p=Pool+0x400;
+        c.gpr[13]=width;c.gpr[8]=p;instruction(&c,0x80015FB0);
+        check(c.gpr[13]==uint32_t(width+2*m) && rd(GP+0xEDC)==uint32_t(width),"water widens its local viewport only");
+        for(unsigned j=0;j<2;++j){
+            const auto a=p+j*28;wr(a,0x06000000|(j?0xFFFFFF:((p+28)&0xFFFFFF)));
+            wr(a+4,0xE1000600);wr(a+8,0x2A405060);
+            for(unsigned i=0;i<4;++i){const int x=j?int(i)*20-40:(i&1?width+2*m:0);wr(a+12+4*i,uint16_t(x)|((70+i)<<16));}
+        }
+        wr(p+56,0x12345678);c.gpr[8]=p+56;instruction(&c,0x8001665C);
+        check(int16_t(rd(p+12))==-m && int16_t(rd(p+16))==width+m,"water base reaches both reveal edges");
+        check(int16_t(rd(p+40))==-40-m,"rolled water uses the same origin shift");
+        check(rd(p+12)>>16==70 && rd(p+8)==0x2A405060 && rd(p+56)==0x12345678,"water changes only its four X fields");
+        c.gpr[23]=width;instruction(&c,0x800166BC);check(c.gpr[23]==uint32_t(width+2*m),"wave traversal matches base coverage");
+        for(int x:{-m-1,-m,width+m,width+m+1}){
+            c.gpr[5]=uint32_t(x);instruction(&c,0x80016FE8);
+            check((int32_t(c.gpr[5])<0)==(x<-m),"wave left outcode includes reveal boundary");
+            c.gpr[2]=0;instruction(&c,0x80016FF4);
+            check((c.gpr[2]!=0)==(x<=width+m),"wave right outcode uses actual local viewport");
+        }
+        c.gpr[13]=width;c.gpr[8]=p;instruction(&c,0x80015FB0);
+        wr(p+28+8,0);const auto before=rd(p+12);c.gpr[8]=p+56;instruction(&c,0x8001665C);
+        check(rd(p+12)==before,"malformed water interval is rejected before any coordinate edits");
+    }
+    netplay_active=0;netplay_wide_width=0;wr(GP+0xEDC,320);
     enabled=true;display_width=640;c.gpr[2]=0x80074A68;c.gpr[3]=0x80094A68;
     instruction(&c,0x80014BBC);instruction(&c,0x80014BD8);
     check(c.gpr[2]==0x80074A68&&c.gpr[3]==0x80094A68,"menus retain native packet arenas");
