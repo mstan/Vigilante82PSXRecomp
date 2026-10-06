@@ -35,6 +35,7 @@ multitap_analog = false
 
 # Use the complete sequel disc, including its sixteen CD audio tracks.
 [netplay]
+content_negotiation = true
 local_viewport = "vertical_split"
 local_viewport_aspect = "fixed"
 local_viewport_renderer = "native_wide"
