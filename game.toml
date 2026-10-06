@@ -20,7 +20,7 @@ strict = true
 openbios = true
 bios_hle = true
 bios_hle_keep_intro = false
-fast_boot = false
+fast_boot = true
 debug_port = 4545
 window_title = "Vigilante 8: 2nd Offense Recompiled"
 controller = "digital"
@@ -47,9 +47,21 @@ required_tracks = 17
 [video]
 renderer = "opengl"
 offer_frame_interpolation = false
-supersampling = 1
 texture_filtering = "nearest"
 aspect_ratio = "4:3"
+internal_resolution = "1080p"
+resolution_reference_lines = 240
+# Precision belongs to the default-on PGXP mod, so turning it off works.
+geometry_correction = false
+perspective_texturing = false
+pgxp_cpu_mode = true
+pgxp_tolerance = 1.0
+# Dataflow only (psxrecomp ENHANCEMENTS.md G1.11): at hook-build coverage the
+# position cache only hands unrelated fractions to CPU-built 2D HUD polygons.
+pgxp_position_fallback = false
+# The mod is the one PGXP switch: no launcher row or stale settings.toml key
+# can keep half of it on after the player turns the mod off.
+pgxp_mod_only = true
 
 [widescreen]
 offer = false

@@ -1,0 +1,33 @@
+format_version = 5
+id = "psx.enhancement.pgxp"
+version = "1.0.0"
+name = "Vigilante 8: 2nd Offense PGXP Precision"
+author = "mstan"
+description = "Subpixel geometry and perspective-correct textures using the shared PGXP backend. Presentation only: the game's own math, culling and readback see exactly what real hardware produces, so it is safe in netplay."
+resolver = "declarative"
+save_compatibility = "shared"
+
+# Overrides the framework's builtin psx.enhancement.pgxp at the same id and
+# version (psxrecomp docs/ENHANCEMENTS.md G1.11): on by default with CPU
+# propagation. The builtin's precise-culling option is deliberately absent; it
+# changes guest NCLIP results and netplay sessions never arm it.
+[[target]]
+game_id = "SLUS-00868"
+
+[[feature]]
+id = "pgxp"
+name = "PGXP Precision"
+description = "Reduce polygon wobble and texture warping on arenas, vehicles and effects. Precision is validated against the actual packet words, so the HUD and menus keep their original placement."
+group = "Visual"
+default_enabled = true
+
+[[option]]
+feature = "pgxp"
+id = "cpu_mode"
+label = "CPU precision propagation"
+type = "boolean"
+default = "true"
+
+[[plugin]]
+feature = "pgxp"
+id = "psx.pgxp"
