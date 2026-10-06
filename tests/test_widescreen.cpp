@@ -153,6 +153,34 @@ int main(){
     wr(0x8002010C,0);wr(0x80020110,12|(12<<16));
     entry(&c,0x8003827C);
     check(hud_tags.size()==1&&hud_tags[0].second==1,"single-player right HUD retains its native edge after a split HUD");
+    {
+        // Retail single-player status widget (GP0 ring, SLUS-00868): radar
+        // panel x16-80, status panel x80-164 with the vehicle icon x76-116 and
+        // a green/red health bar split at x106. The icon and bar belong to the
+        // centred status panel even though their own centres fall left of it.
+        struct R{uint8_t op;int x,y,w,h;};
+        const R rects[]={
+            {0x64,16,16,64,55},{0x60,42,40,2,2},     // radar panel, enemy blip
+            {0x64,80,20,84,34},{0x64,76,22,40,16},  // status panel, vehicle icon
+            {0x60,80,40,26,2},{0x60,106,40,6,2},    // health bar: green, red
+        };
+        const int expected[]={-1,-1,0,0,0,0};
+        uint32_t words=0;for(const auto& r:rects)words+=(r.op&4)?4:3;
+        hud_tags.clear();wr(0x80020000,0xFFFFFF);
+        c.gpr[5]=0;c.gpr[6]=0x80020000;entry(&c,0x80037A00);
+        wr(0x80020000,0x020100);wr(0x80020100,(words<<24)|0xFFFFFF);
+        uint32_t p=0x80020104;std::vector<uint32_t> cmds;
+        for(const auto& r:rects){
+            cmds.push_back(p);wr(p,uint32_t(r.op)<<24);wr(p+4,uint32_t(r.x)|(uint32_t(r.y)<<16));p+=8;
+            if(r.op&4){wr(p,0);p+=4;}
+            wr(p,uint32_t(r.w)|(uint32_t(r.h)<<16));p+=4;
+        }
+        entry(&c,0x8003827C);
+        check(hud_tags.size()==std::size(rects),"every status widget packet is tagged");
+        for(unsigned i=0;i<std::size(rects);++i)
+            check(hud_tags[i].first==cmds[i]-4&&hud_tags[i].second==expected[i],
+                  "status widget contents move with their panel; radar keeps the left edge");
+    }
     // Every cell belongs to exactly one bounded native batch. Adjacent batches
     // share their edge vertices, with no transparent-water overlap or holes.
     const auto saved_sp=c.gpr[29];c.gpr[29]=0x80030000;

@@ -76,16 +76,47 @@ int command_words(uint8_t op){
     if(op==0 || op==1 || (op>=0xE1 && op<=0xE6))return 1;
     return 0;
 }
-int anchor(uint32_t c,uint8_t op){
-    int left=int16_t(psx_mod_read_half(c+4)),right=left;
+struct Box{int left,right,top,bottom;};
+Box bounds(uint32_t c,uint8_t op){
+    Box b{int16_t(psx_mod_read_half(c+4)),0,int16_t(psx_mod_read_half(c+6)),0};
+    b.right=b.left;b.bottom=b.top;
     if(op>=0x20 && op<=0x3F){
         const int n=(op&8)?4:3,stride=4+((op&4)?4:0)+((op&16)?4:0);
-        for(int i=1;i<n;++i){const int x=int16_t(psx_mod_read_half(c+4+i*stride));left=std::min(left,x);right=std::max(right,x);}
+        for(int i=1;i<n;++i){
+            const int x=int16_t(psx_mod_read_half(c+4+i*stride)),y=int16_t(psx_mod_read_half(c+6+i*stride));
+            b.left=std::min(b.left,x);b.right=std::max(b.right,x);b.top=std::min(b.top,y);b.bottom=std::max(b.bottom,y);
+        }
     }else{
         const unsigned size=(op>>3)&3;
-        right+=size==1?1:size==2?8:size==3?16:psx_mod_read_half(c+((op&4)?12:8));
+        const int fixed=size==1?1:size==2?8:16;
+        b.right+=size?fixed:psx_mod_read_half(c+((op&4)?12:8));
+        b.bottom+=size?fixed:psx_mod_read_half(c+((op&4)?14:10));
     }
-    return 3*(left+right)<640?-1:3*(left+right)>1280?1:0;
+    return b;
+}
+int edge(const Box& b){return 3*(b.left+b.right)<640?-1:3*(b.left+b.right)>1280?1:0;}
+// A HUD widget is one backing panel plus the sprites and bars drawn inside it.
+// Classifying every packet by its own centre splits a widget that straddles
+// the left/centre cutoff: the single-player status panel (x80-164) keeps its
+// frame centred while its vehicle icon (x76-116) and the green part of its
+// health bar move left with the radar, leaving the red damage part behind.
+// A packet whose centre lies inside a larger, smaller-than-half-screen HUD
+// packet takes that container's (already resolved) anchor instead.
+struct HudPrim{uint32_t cmd,order;Box box;int area,anchor;};
+void group_hud_anchors(HudPrim* prims,unsigned n){
+    std::stable_sort(prims,prims+n,[](const HudPrim& a,const HudPrim& b){return a.area>b.area;});
+    for(unsigned i=0;i<n;++i){
+        const auto& b=prims[i].box;
+        const int cx2=b.left+b.right,cy2=b.top+b.bottom;
+        int best=-1;
+        for(unsigned j=0;j<i;++j){
+            const auto& k=prims[j].box;
+            if(prims[j].area<=prims[i].area || k.right-k.left>=160)continue;
+            if(cx2<2*k.left || cx2>=2*k.right || cy2<2*k.top || cy2>=2*k.bottom)continue;
+            if(best<0 || prims[j].area<prims[best].area)best=int(j);
+        }
+        if(best>=0)prims[i].anchor=prims[best].anchor;
+    }
 }
 void tag_chain(uint32_t slot,uint32_t stop,bool sky,bool compact_hud=false){
     if(!slot || !ram(slot))return;
@@ -97,15 +128,27 @@ void tag_chain(uint32_t slot,uint32_t stop,bool sky,bool compact_hud=false){
         for(unsigned i=0;i<words;){int n=command_words(psx_mod_read_byte(p+7+4*i));if(n<=0||unsigned(n)>words-i)return;i+=n;}
         packets[count++]=p;current=tag&0xFFFFFF;
     }
+    static HudPrim prims[2048];
+    unsigned n=0;
     for(unsigned j=0;j<count;++j)for(unsigned i=0,words=rd(packets[j])>>24;i<words;){
         const auto c=packets[j]+4+4*i;const auto op=psx_mod_read_byte(c+3);
+        if(op>=0x20 && op<=0x3F && sky)gpu_ws_tag_background_prim(c-4);
+        else if(!sky && ((op>=0x20 && op<=0x3F) || (op>=0x60 && op<=0x7F)) && n<std::size(prims)){
+            const Box b=bounds(c,op);
+            prims[n]={c,n,b,(b.right-b.left+1)*(b.bottom-b.top+1),edge(b)};++n;
+        }
+        i+=command_words(op);
+    }
+    if(!sky){
         // Modes 4/5 place the complete vertical-split HUD in one 160px group.
         // Independent 320px edge classification separates its weapon and
         // ammo packets. Move this group together; radar/reticle packets are
         // emitted after this chain and retain their own placement.
-        if(op>=0x20 && op<=0x3F){if(sky)gpu_ws_tag_background_prim(c-4);else gpu_ws_tag_hud_prim(c-4,compact_hud?-1:anchor(c,op));}
-        else if(!sky && op>=0x60 && op<=0x7F)gpu_ws_tag_hud_prim(c-4,compact_hud?-1:anchor(c,op));
-        i+=command_words(op);
+        if(compact_hud)for(unsigned i=0;i<n;++i)prims[i].anchor=-1;
+        else group_hud_anchors(prims,n);
+        // Tag in emission order; grouping only changes the anchors.
+        std::sort(prims,prims+n,[](const HudPrim& a,const HudPrim& b){return a.order<b.order;});
+        for(unsigned i=0;i<n;++i)gpu_ws_tag_hud_prim(prims[i].cmd-4,prims[i].anchor);
     }
     psx_mod_counter_add(sky?"v82.ws.sky_tagged":"v82.ws.hud_tagged",count);
 }
