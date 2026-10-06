@@ -1,0 +1,25 @@
+format_version = 5
+id = "v82.enhancement.texture-filtering"
+version = "1.0.0"
+name = "Stable World Texture Filtering"
+author = "mstan"
+description = "Reduce texture shimmer on distant and slanted arena surfaces while keeping HUD sprites and text sharp."
+resolver = "declarative"
+save_compatibility = "shared"
+
+[[target]]
+game_id = "SLUS-00868"
+
+# Presentation only (psxrecomp docs/STABLE_TEXTURE_FILTERING.md): OpenGL world
+# polygons with proven projected geometry get the stable filter; sprites, HUD
+# and untracked packets keep nearest sampling.
+[[feature]]
+id = "texture-filtering"
+name = "World Texture Filtering"
+description = "Reduce shimmer on distant and slanted world textures while keeping text and HUD sprites sharp. Requires the OpenGL renderer."
+group = "Graphics"
+default_enabled = true
+
+[[plugin]]
+feature = "texture-filtering"
+id = "v82.filter.stable"
