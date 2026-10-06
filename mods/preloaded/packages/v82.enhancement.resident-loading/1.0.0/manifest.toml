@@ -1,0 +1,25 @@
+format_version = 5
+id = "v82.enhancement.resident-loading"
+version = "1.0.0"
+name = "Resident Loading"
+author = "mstan"
+description = "Keep the original arena, vehicle, menu and sound files resident in memory and complete the game's own file reads from them. Movies, speech and CD music stay on the disc."
+resolver = "declarative"
+save_compatibility = "shared"
+
+# Netplay: this feature is part of the published mod plan, so every peer runs
+# the same loader path. Changed or unknown files always use the original
+# loader; the prepared pack depends only on the mounted disc and the plan.
+[[target]]
+game_id = "SLUS-00868"
+
+[[feature]]
+id = "resident-loading"
+name = "Resident Loading"
+description = "Prepare the original data files once from your disc, then finish arena, vehicle and menu loads from memory. Gameplay, movie and audio timing are unchanged."
+group = "Gameplay"
+default_enabled = true
+
+[[plugin]]
+feature = "resident-loading"
+id = "v82.resident"

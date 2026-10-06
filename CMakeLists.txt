@@ -78,6 +78,12 @@ if(BUILD_TESTING)
     target_include_directories(v82-vehicle-package-test PRIVATE src/mods)
     add_test(NAME v82-vehicle-package COMMAND v82-vehicle-package-test)
     set_tests_properties(v82-vehicle-package PROPERTIES SKIP_RETURN_CODE 77)
+    add_executable(v82-resident-test tests/test_resident.cpp)
+    target_include_directories(v82-resident-test PRIVATE src/mods "${PSXRECOMP_ROOT}/runtime/include")
+    add_test(NAME v82-resident COMMAND v82-resident-test)
+    add_test(NAME v82-resident-catalog COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_resident_catalog.py")
+    set_tests_properties(v82-resident-catalog PROPERTIES SKIP_RETURN_CODE 77
+        ENVIRONMENT "V82_FRAMEWORK=${PSXRECOMP_ROOT}")
 endif()
 
 # The release folder includes the frozen conversion worker and encoder. Players
