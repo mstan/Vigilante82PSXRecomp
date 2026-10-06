@@ -85,5 +85,19 @@ static const V82ResidentEntry kCatalog[] = {
     {"LEVELS/V8/WILDWEST.DLL", 9783u, 8620u, "f5fa51997afe0916f241206eac0f884020a9d073083082cb8c1d8d211beb9045"},
     {"LEVELS/V8/WILDWEST.EXP", 9788u, 655514u, "cde310776932a9ed700623999036b6eafd00fbda8e95a4d6b1fd08134b16a307"},
 };
-static constexpr uint32_t kLoaderLo = 0x80017F50u, kLoaderHi = 0x80018708u;
-static constexpr const char* kLoaderSha256 = "1534015d34e377ac43c15bf72311bf26e6c32b5510d81204c43f6f2c976d8b9c";
+static const PSXResidentRange kContract[] = {
+    {0x80017F50u, 0x80018708u},
+    {0x800216C0u, 0x80021D3Cu},
+    {0x8001E914u, 0x8001E988u},
+    {0x80054C4Cu, 0x80054DC4u},
+    {0x80032F40u, 0x800330A4u},
+    {0x8001F3C0u, 0x8001FC3Cu},
+    {0x8002080Cu, 0x80020DF0u},
+    {0x80020330u, 0x80020480u},
+    {0x80021064u, 0x800212E4u},
+    {0x8005BF88u, 0x8005BFF0u},
+    {0x8001DEA8u, 0x8001E05Cu},
+    {0x80052970u, 0x80052EA4u},
+    {0x800535ECu, 0x80053780u},
+};
+static constexpr const char* kContractSha256 = "b906ebfec04550da36a8a13cf621d15ac38d51d07254a55a27264a78c11eaff4";

@@ -1,14 +1,19 @@
 /* SLUS-00868 Resident Loading adapter; contract in v82_resident.h. Guest CD
  * timing, movies, XA and CD audio are untouched: supported loader calls
  * complete from verified resident sectors, everything else runs the game's
- * original loader. */
+ * original loader. The load floor shims (A-E in the header) take the guest
+ * time out of the arena load's waits and CPU work. */
 #include "v82_resident.h"
+#include "v82_lzss.h"
 #include "cpu_state.h"
 #include "mod_plugins.h"
 #include "mod_resident.h"
+#include <algorithm>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <unordered_map>
+#include <vector>
 
 namespace v82_resident {
 namespace {
@@ -25,6 +30,11 @@ const PSXResidentPack* pack = nullptr;
 uint32_t record = 0;      /* guest address of the stream record */
 bool observe = false;     /* debug tools: record loader calls, never serve */
 bool forcing_cd = false;  /* a fallback is starting the original CD stream */
+bool floor_on = true;     /* debug tools: PSX_V82_LOAD_FLOOR=0 turns A-E off */
+bool in_uncharged = false; /* the allocator's own entry inside its uncharged call */
+/* Pre-decoded textures by (size, first stream bytes): derived blob indexes.
+ * Built from the pack alone, so both netplay peers hold the same index. */
+std::unordered_multimap<uint64_t, uint32_t> texture_index;
 
 uint32_t rd(uint32_t a) { return psx_mod_read_word(a); }
 void wr(uint32_t a, uint32_t v) { psx_mod_write_word(a, v); }
@@ -36,13 +46,17 @@ bool ram_span(uint32_t address, uint32_t bytes) {
            phys < limit && bytes <= limit - phys;
 }
 
-/* The loader text the adapter reproduces, hashed from live guest RAM. */
+/* The loader text the adapter reproduces and every function the load floor
+ * relies on, hashed from live guest RAM. */
 bool contract() {
-    static const PSXResidentRange range{kLoaderLo, kLoaderHi};
-    if (psx_resident_guest_ranges_match(&range, 1, kLoaderSha256)) return true;
+    if (psx_resident_guest_ranges_match(kContract, sizeof kContract / sizeof kContract[0],
+                                        kContractSha256))
+        return true;
     psx_mod_counter_add("v82.resident.contract_mismatch", 1);
     return false;
 }
+
+bool floor_ok() { return floor_on && !observe && contract(); }
 
 /* `bytes` at file-relative byte `offset` of pack file `file`, or null. */
 const uint8_t* file_bytes(uint32_t file, uint64_t offset, uint64_t bytes) {
@@ -214,11 +228,190 @@ void on_whole_read(CPUState* c, uint32_t gp) {
     psx_resident_record("v82.resident.whole_read", file, lba, sectors * 2048u, 1);
 }
 
+/* ---- Load floor (header A-E) ---- */
+
+/* A: the arena load waits for the loading-screen wipe after its loader is
+ * done. Mark a running wipe finished; the original body then restores the
+ * VSync callback and draw environment as it would after the last frame. */
+void on_wipe_wait(CPUState* c, uint32_t gp) {
+    if (c->gpr[31] != ArenaWipeWaitReturn || c->gpr[4] != 0 || !ram_span(gp, 0xEA0u) ||
+        rd(gp + GpWipeState) != 1u || !floor_ok())
+        return;
+    wr(gp + GpWipeState, 2u);
+    psx_mod_counter_add("v82.resident.wipe_ended", 1);
+    psx_resident_record("v82.resident.wipe_end", NoFile, 0, 0, 1);
+}
+
+/* B: the five VSync(0) calls of per-object setup during an EXP load. */
+void on_vsync(CPUState* c, uint32_t) {
+    const uint32_t ra = c->gpr[31];
+    bool site = false;
+    for (uint32_t r : ObjectSetupVSyncReturns) site |= ra == r;
+    if (!site || c->gpr[4] != 0) return;
+    const uint32_t frame = c->gpr[29] + ObjectSetupFrameRa;
+    if (!ram_span(frame, 4u) || rd(frame) != ExpChunkObjectSetupReturn || !floor_ok()) return;
+    psx_mod_counter_add("v82.resident.vsync_skipped", 1);
+    finish(c, 0);  /* the result is never read (8001E984 reloads v0) */
+}
+
+/* C: the EXP texture loader's VRAM allocations, in zero guest time. */
+void on_rect_alloc(CPUState* c, uint32_t) {
+    if (in_uncharged) return;  /* the uncharged call itself: run the body */
+    const uint32_t ra = c->gpr[31];
+    if ((ra != TextureClutAllocReturn && ra != TextureImageAllocReturn) || !floor_ok()) return;
+    int charged = 0;
+    in_uncharged = true;
+    const uint32_t v0 = psx_mod_call_guest_uncharged(c, RectAlloc, ra, c->gpr[4], c->gpr[5],
+                                                     c->gpr[6], c->gpr[7], AllocBudgetCycles,
+                                                     &charged);
+    in_uncharged = false;
+    psx_mod_counter_add(charged ? "v82.resident.alloc_over_budget" : "v82.resident.alloc_uncharged", 1);
+    finish(c, v0);
+}
+
+uint64_t texture_key(int w, int h, const uint8_t head[8]) {
+    uint64_t k = 0xCBF29CE484222325ull;
+    auto mix = [&](uint8_t b) { k = (k ^ b) * 0x100000001B3ull; };
+    mix(uint8_t(w)); mix(uint8_t(w >> 8)); mix(uint8_t(h)); mix(uint8_t(h >> 8));
+    for (int i = 0; i < 8; ++i) mix(head[i]);
+    return k;
+}
+
+/* Pack derive callback: every compressed EXP texture, decoded exactly as the
+ * guest would. Textures the model refuses are left to the game. */
+int derive_textures(PSXResidentSink* sink, uint32_t file, const uint8_t* data, uint32_t size,
+                    int, void*) {
+    if (file >= FileCount || size < 12u || std::memcmp(data, "FORM", 4)) return 1;
+    std::vector<uint8_t> pixels;
+    for (const auto& t : v82_lzss::textures(data, size)) {
+        uint32_t consumed = 0;
+        if (t.avail < 8u ||
+            !v82_lzss::decode(data + t.offset, t.avail, t.w, t.h, pixels, consumed))
+            continue;
+        const uint32_t meta[4] = {uint32_t(uint16_t(t.w)) | uint32_t(uint16_t(t.h)) << 16,
+                                  t.offset, consumed, 0};
+        if (!psx_resident_emit(sink, file, TextureTag, meta, pixels.data(), uint32_t(pixels.size())))
+            return 0;
+    }
+    return 1;
+}
+
+void index_textures() {
+    texture_index.clear();
+    const uint32_t n = psx_resident_derived_count(pack);
+    for (uint32_t i = 0; i < n; ++i) {
+        uint32_t file = 0, tag = 0, meta[4] = {}, size = 0, padded = 0;
+        if (!psx_resident_derived(pack, i, &file, &tag, meta, &size) || tag != TextureTag) continue;
+        const uint8_t* data = psx_resident_file(pack, file, nullptr, &padded);
+        if (!data || meta[1] > padded || padded - meta[1] < 8u) continue;
+        texture_index.emplace(texture_key(int16_t(meta[0]), int16_t(meta[0] >> 16), data + meta[1]), i);
+    }
+}
+
+/* The pre-decoded pixels for the stream at guest `src`, or null. The match
+ * is exact: every compressed byte the guest decoder would read equals the
+ * pack's, so its output is the blob. */
+const uint8_t* find_texture(int w, int h, uint32_t src, uint32_t& file_out) {
+    uint8_t head[8];
+    if (!ram_span(src, 8u)) return nullptr;
+    for (int i = 0; i < 8; ++i) head[i] = psx_mod_read_byte(src + uint32_t(i));
+    const auto range = texture_index.equal_range(texture_key(w, h, head));
+    for (auto it = range.first; it != range.second; ++it) {
+        uint32_t file = 0, tag = 0, meta[4] = {}, size = 0, padded = 0;
+        const uint8_t* pixels = psx_resident_derived(pack, it->second, &file, &tag, meta, &size);
+        const uint8_t* data = psx_resident_file(pack, file, nullptr, &padded);
+        if (!pixels || !data || int16_t(meta[0]) != w || int16_t(meta[0] >> 16) != h ||
+            size != uint32_t(w) * uint32_t(h) * 2u || meta[1] > padded ||
+            meta[2] > padded - meta[1] || !ram_span(src, meta[2]))
+            continue;
+        const uint8_t* want = data + meta[1];
+        uint32_t i = 0;
+        for (; i < meta[2]; ++i)
+            if (psx_mod_read_byte(src + i) != want[i]) break;
+        if (i != meta[2]) continue;
+        file_out = file;
+        return pixels;
+    }
+    return nullptr;
+}
+
+/* D: a texture the pack holds goes to VRAM without the guest decode. */
+void on_lzss(CPUState* c, uint32_t) {
+    if (c->gpr[31] != TextureDecodeReturn || texture_index.empty()) return;
+    const uint32_t rect = c->gpr[4], src = c->gpr[5], sp = c->gpr[29];
+    if (!ram_span(rect, 8u)) return;
+    const int x = int16_t(psx_mod_read_half(rect)), y = int16_t(psx_mod_read_half(rect + 2));
+    const int w = int16_t(psx_mod_read_half(rect + 4)), h = int16_t(psx_mod_read_half(rect + 6));
+    /* Staging: the decoder's own window, below sp (the guest writes its
+     * decoded rows there too). Chunks stay 0xC00 bytes so an odd-sized
+     * upload's trailing half-word is still inside that frame. */
+    const uint32_t staging = sp - LzssFrame + 0x10u, chunk_bytes = 0xC00u;
+    if (x < 0 || y < 0 || w <= 0 || h <= 0 || x + w > 1024 || y + h > 512 ||
+        uint32_t(w) * 2u > chunk_bytes || !ram_span(sp - LzssFrame, LzssFrame) || !floor_ok())
+        return;
+    uint32_t file = NoFile;
+    const uint8_t* pixels = find_texture(w, h, src, file);
+    if (!pixels) {
+        psx_mod_counter_add("v82.resident.texture_unmatched", 1);
+        psx_resident_record("v82.resident.texture", NoFile, src, uint32_t(w * h * 2), 0);
+        return;
+    }
+    /* The game's queued GPU work (this texture's CLUT upload) comes first. */
+    psx_mod_call_guest(c, DrawSync, c->gpr[31], 0, 0, 0, 0);
+    const uint32_t row = uint32_t(w) * 2u, rows_per_chunk = chunk_bytes / row;
+    for (int line = 0; line < h;) {
+        const uint32_t rows = std::min<uint32_t>(rows_per_chunk, uint32_t(h - line));
+        if (!psx_mod_host_write_ram(staging, pixels + size_t(line) * row, rows * row) ||
+            !psx_mod_psyq_load_image(uint32_t(x), uint32_t(y + line), uint32_t(w), rows, staging)) {
+            /* Unreachable after the checks above; never leave a half upload
+             * unreported. */
+            psx_mod_counter_add("v82.resident.texture_upload_failed", 1);
+            break;
+        }
+        line += int(rows);
+    }
+    psx_mod_counter_add("v82.resident.textures_predecoded", 1);
+    psx_resident_record("v82.resident.texture", file, src, uint32_t(w * h * 2), 1);
+    finish(c, 0);  /* the decoder ends with v0 = 0 (800212AC) */
+}
+
+/* E: one sound-bank chunk by DMA, completed now. SpuWrite's own effects:
+ * _spu_t(2) transfer address (RAM unchanged), _spu_t(1) DMA-write mode,
+ * _spu_t(3) SPU_DELAY, DMA bookkeeping and whole 16-word blocks; then the
+ * completion SpuIsTransferCompleted records once the DMA event arrives. */
+void on_spu_write(CPUState* c, uint32_t) {
+    if (c->gpr[31] != BankChunkWriteReturn) return;
+    const uint32_t src = c->gpr[4];
+    const uint32_t size = c->gpr[5] > SpuWriteMax ? SpuWriteMax : c->gpr[5];
+    const uint32_t shift = rd(SpuAddrShift), delay = rd(SpuDelayPtr);
+    const uint32_t blocks = (size >> 6) + ((size & 63u) != 0u);
+    if (!size || (src & 3u) || rd(SpuIoMode) != 0u || rd(SpuCallback) != 0u || shift > 3u ||
+        (delay & 0x1FFFFFFFu) != 0x1F801014u || !ram_span(src, blocks * 64u) || !floor_ok())
+        return;
+    const uint32_t address = uint32_t(psx_mod_read_half(SpuTransferAddr)) << shift;
+    wr(SpuTMode, 0);
+    psx_mod_write_word(delay, (psx_mod_read_word(delay) & 0xF0FFFFFFu) | 0x20000000u);
+    wr(SpuDmaSource, src);
+    wr(SpuDmaBlocks, blocks);
+    if (!psx_mod_spu_upload(address, src, blocks * 64u, 0)) {
+        /* Rejected before any SPU write; the original body redoes the
+         * bookkeeping identically and runs the DMA. */
+        psx_mod_counter_add("v82.resident.spu_declined", 1);
+        return;
+    }
+    wr(SpuDone, 1u);
+    psx_mod_counter_add("v82.resident.spu_chunks", 1);
+    finish(c, size);
+}
+
 struct Hook { uint32_t address, word; void (*handler)(CPUState*, uint32_t); };
 constexpr Hook Hooks[] = {
     {WholeRead, 0x27BDFFE8u, on_whole_read}, {Begin, 0x27BDFFE8u, on_begin},
     {End, 0x27BDFFF8u, on_end}, {Read, 0x8F820D64u, on_read},
     {ReadByte, 0x8F820D64u, on_read_byte}, {Seek, 0x27BDFFF0u, on_seek},
+    {WipeWait, 0x8F820E98u, on_wipe_wait}, {VSync, 0x3C028006u, on_vsync},
+    {RectAlloc, 0x27BDFFC8u, on_rect_alloc}, {Lzss, 0x27BDF390u, on_lzss},
+    {SpuWrite, 0x27BDFFE8u, on_spu_write},
 };
 
 void entry(CPUState* c, uint32_t address) {
@@ -240,21 +433,27 @@ void activate() {
     record = 0;
     forcing_cd = false;
     observe = false;
+    floor_on = true;
+    in_uncharged = false;
+    texture_index.clear();
 #ifndef PSX_NO_DEBUG_TOOLS
     const char* mode = std::getenv("PSX_V82_RESIDENT_OBSERVE");
     observe = mode && !std::strcmp(mode, "1");
+    const char* floor_mode = std::getenv("PSX_V82_LOAD_FLOOR");
+    floor_on = !(floor_mode && !std::strcmp(floor_mode, "0"));
 #endif
     for (uint32_t i = 0; i < FileCount; ++i)
         files[i] = {kCatalog[i].path, kCatalog[i].size, kCatalog[i].sha256};
     PSXResidentSpec spec{};
     spec.struct_size = sizeof spec;
     spec.title = "Vigilante82PSXRecomp";
-    spec.format = "slus00868-files-v1";
+    spec.format = "slus00868-files-v2";  /* v2: pre-decoded textures */
     spec.files = files;
     spec.file_count = FileCount;
     /* Changed files stay in the pack but are never served (per-file stock
      * check at each request), so one modded asset keeps the rest resident. */
     spec.policy = PSX_RESIDENT_ALLOW_MODIFIED;
+    spec.derive = derive_textures;
     pack = psx_resident_prepare(&spec);
     if (!pack) {
         psx_mod_counter_add("v82.resident.unavailable", 1);
@@ -266,6 +465,7 @@ void activate() {
         psx_mod_counter_add("v82.resident.no_guest_memory", 1);
         return;
     }
+    index_textures();
     psx_mod_counter_add("v82.resident.modified_files", psx_resident_modified_files(pack));
     psx_mod_counter_add("v82.resident.activated", 1);
 }

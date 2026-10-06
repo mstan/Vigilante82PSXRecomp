@@ -12,9 +12,32 @@ from pathlib import Path
 
 EXCLUDED_SUFFIXES = ('.STR', '.XA')
 EXCLUDED_FILES = {'SYSTEM.CNF', 'SLUS_008.68'}
-# The stream loader the adapter replaces: WholeRead 80017F50 through the end of
-# Seek, including the sector-ready callback and Wait whose effects it reproduces.
-LOADER_LO, LOADER_HI = 0x80017F50, 0x80018708
+# The code contract, hashed in order from live guest RAM (v82_resident.h):
+CONTRACT = (
+    # The stream loader the adapter replaces: WholeRead 80017F50 through the end
+    # of Seek, including the sector-ready callback and Wait it reproduces.
+    (0x80017F50, 0x80018708),
+    # Load floor. A: wipe setup 800216C0, VSync-callback wipe 800218D8, wait
+    # 80021C24 and start wrapper 80021CB4/80021D1C.
+    (0x800216C0, 0x80021D3C),
+    # B: per-object setup's five VSync(0) calls, and VSync itself.
+    (0x8001E914, 0x8001E988),
+    (0x80054C4C, 0x80054DC4),
+    # B-D callers: the EXP chunk loader and its texture loader 8001F3C0/8001FBFC.
+    (0x80032F40, 0x800330A4),
+    (0x8001F3C0, 0x8001FC3C),
+    # C: the VRAM rectangle allocator 80020A80 and its helpers from 8002080C.
+    (0x8002080C, 0x80020DF0),
+    # D: texture LZSS 80021064 (its memcpy 80020330) and DrawSync.
+    (0x80020330, 0x80020480),
+    (0x80021064, 0x800212E4),
+    (0x8005BF88, 0x8005BFF0),
+    # E: the sound-bank loader, _spu_t and its DMA helpers, SpuWrite through
+    # SpuIsTransferCompleted.
+    (0x8001DEA8, 0x8001E05C),
+    (0x80052970, 0x80052EA4),
+    (0x800535EC, 0x80053780),
+)
 EXE_BASE, EXE_HEADER = 0x80010000, 0x800
 
 
@@ -31,10 +54,12 @@ def catalog(disc):
     return entries
 
 
-def loader_contract(disc):
+def code_contract(disc):
     exe = disc.read('SLUS_008.68')
-    text = exe[EXE_HEADER + LOADER_LO - EXE_BASE:EXE_HEADER + LOADER_HI - EXE_BASE]
-    return hashlib.sha256(text).hexdigest()
+    digest = hashlib.sha256()
+    for lo, hi in CONTRACT:
+        digest.update(exe[EXE_HEADER + lo - EXE_BASE:EXE_HEADER + hi - EXE_BASE])
+    return digest.hexdigest()
 
 
 def render(entries, contract):
@@ -44,9 +69,9 @@ def render(entries, contract):
              f'// {len(entries)} files, {total} sector bytes.',
              'static const V82ResidentEntry kCatalog[] = {']
     lines += [f'    {{"{name}", {lba}u, {size}u, "{digest}"}},' for name, lba, size, digest in entries]
-    lines += ['};',
-              f'static constexpr uint32_t kLoaderLo = 0x{LOADER_LO:08X}u, kLoaderHi = 0x{LOADER_HI:08X}u;',
-              f'static constexpr const char* kLoaderSha256 = "{contract}";', '']
+    lines += ['};', 'static const PSXResidentRange kContract[] = {']
+    lines += [f'    {{0x{lo:08X}u, 0x{hi:08X}u}},' for lo, hi in CONTRACT]
+    lines += ['};', f'static constexpr const char* kContractSha256 = "{contract}";', '']
     return '\n'.join(lines)
 
 
@@ -61,7 +86,7 @@ def main():
     sys.path.insert(0, str(args.framework / 'tools'))
     from aot_overlay_pipeline import Disc
     disc = Disc(args.disc)
-    text = render(catalog(disc), loader_contract(disc))
+    text = render(catalog(disc), code_contract(disc))
     if args.check:
         current = args.output.read_text(encoding='utf-8') if args.output.exists() else ''
         if current != text:
