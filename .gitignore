@@ -1,6 +1,7 @@
 /build*/
 /generated*/
 /game.local.toml
+/playtest.local.toml
 /saves/
 /cache/
 __pycache__/
