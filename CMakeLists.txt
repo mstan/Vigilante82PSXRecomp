@@ -16,7 +16,11 @@ if(NOT GAME_C)
 endif()
 file(GLOB TITLE_PLUGINS CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/*.c" "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/*.cpp")
+# PGXP: the one runtime is the PGXP hook flavour (-DPSX_PGXP=1, overlay
+# flavour 2), so the default-on psx.enhancement.pgxp package reaches dataflow
+# coverage. The generated C already carries the PGXP_*() hook sites.
 psxrecomp_add_runtime_target(psx-runtime
+    PGXP
     GAME_GENERATED_FULL_C "${GAME_C}"
     GAME_GENERATED_DISPATCH_C "${CMAKE_CURRENT_SOURCE_DIR}/generated/SLUS_008.68_dispatch.c"
     DEBUG_PORT 4545

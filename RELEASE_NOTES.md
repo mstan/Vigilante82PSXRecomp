@@ -1,3 +1,31 @@
+# v0.1.2 - ultrawide water fix
+
+Water now extends across the selected widescreen view instead of stopping at
+the original 320-pixel screen bounds. Wider wave surfaces render in bounded
+batches through the native water renderer, preserving its buffer limits.
+This fixes the missing water observed at Nuclear Plant's screen edges.
+
+The accepted building/subdivision behavior and v0.1.1 multiplayer HUD fixes
+remain included. Both netplay peers must use the same release and matching
+content/mod choices. Start a fresh game after updating.
+
+## Validation
+
+Windows OpenGL checks cover Nuclear Plant at native 1x resolution in 16:9,
+21:9 and 32:9. The before/after comparison shows water in previously bare
+side areas. A live High Frame Rate run captured 345 actual presentations and
+completed 13 verified render passes with no state mismatch, abort or VRAM
+leak. Tests cover water bounds for the 320-pixel single-player and 160-pixel
+enhanced multiplayer views, packet integrity, and complete grid coverage.
+
+Windows and Linux production builds pass all 21 title checks, including the
+original-car package fixture.
+
+A new two-peer water playtest and Linux visual water inspection have not
+been performed. High Frame Rate remains experimental; its selected rate is
+a target, not a guaranteed frame rate. Existing platform and playtest
+limitations below still apply.
+
 # v0.1.1 ? multiplayer HUD fix
 
 Private Windows x64 and Linux x64 update to the initial v0.1.0 playtest.

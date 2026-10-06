@@ -295,3 +295,28 @@ retail weapon/ammo coordinates in both compact layouts, one to three ammo
 glyphs, and both enhanced widths; it fails before the fix and passes after.
 Returning to a single-player right anchor is also covered. Both production
 platforms pass all 21 title checks. This correction is included in v0.1.1.
+
+
+### Ultrawide water follow-up (v0.1.2)
+
+The owner accepted building visibility and subdivision. A separate Nuclear
+Plant report showed early water cutoff. Native base-water packets still used
+X=0..320 in an 854-pixel view; the textured layer also had independent screen
+outcodes and a 32x32 traversal cap. The fix widens only water's local bounds,
+recenters its validated packet interval, and renders adjacent bounded grids.
+Shared boundary vertices do not duplicate cells or overlap transparent faces.
+
+Actual Windows OpenGL views at 16:9, 21:9 and 32:9 show restored side coverage
+with advancing water counters and no steady-state packet/grid rejection.
+The live HFR120-option run recorded 345 presentations and 13 verified replay
+passes, with no mismatch, abort, watchdog, span failure or VRAM leak. This
+does not establish sustained 120 FPS. The 160-pixel enhanced viewport path
+has unit coverage; a new two-peer water run has not been performed.
+
+The initial 21:9 diagnostic camera sweep stopped advancing during manual
+camera writes; those captures were excluded. Fresh-state checks at the same
+angles advanced normally. The transient's cause was not established.
+Evidence stays outside Git in the v82-water-culling-20261002 run directory.
+
+The v0.1.2 Windows and Linux production builds pass all 21 title checks,
+including the original-car package fixture.
