@@ -20,6 +20,33 @@ identities only, followed by authoritative framework verification. The existing
 `v82.media.receipt_hits` and `v82.media.receipt_misses`; hit/miss counts measure
 probe calls rather than launches. No runtime log files are introduced.
 
+### Launch preparation spike accepted (2026-10-07)
+
+The owner tested the staged build, reported that it "seems pretty snappy",
+and requested closing the spike. Preparation starts when the selected disc or
+mod inputs change. Unchanged launches load verified cached content before the
+launcher opens and reuse that plan on Play without a preparation screen.
+
+The accepted executable used title `24cf8e34`, framework `15d71183`, and the
+feature-only recomp-ui integration `54fc1fd` on the existing `d3151bf` chain.
+Its SHA-256 is
+`3cc60b3722731f189cfc3dc7ed8e239fc248940681e5add81950461142e85bd6`.
+With actual CUE/N64 media, a fresh warm process ran zero conversion helpers,
+zero disc hashes and zero launcher preparation jobs. Verified preloading took
+1.04 seconds; the reused runtime commit took 44.9 ms. These are startup
+measurements, not gameplay frame-rate results.
+
+Validation passed 25 title checks, four integrated framework checks, five UI
+checks and eight hidden launcher scenarios. One optional Dreamland subcase was
+skipped. The accepted build retains the sky, complete left HUD, launcher art,
+disc persistence and render-replay admission fixes; Resident Loading is the
+loading option. Settings and memory cards were preserved.
+
+The source changes are committed on review branches; this acceptance does not
+merge or release them. The separate periodic gameplay hitch remains tracked
+in `beads-eio.12.18`. Full CHD extraction and the parked framework work are
+outside this spike's validation.
+
 ## Two-player netplay handoff
 
 Owner validation, 2026-10-02: the isolated LAN / Direct IP pair exposes original
