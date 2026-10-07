@@ -1,5 +1,25 @@
 # Combined Arcade playtest
 
+## Prepared-media receipts
+
+Verified imports remain in the external `psxrecomp/imports` cache. The title
+records a receipt after successful preparation, with the importer revision,
+selected media and CUE dependencies, extracted CHD tracks, expected resources
+and filesystem identities. An unchanged receipt returns prepared paths without
+starting the conversion helper or rehashing source discs. Framework resolution
+still validates every output's expected SHA and retains immutable bytes for
+the launch and netplay fingerprint checks. Unsupported filesystem identities,
+missing files, changed sources or tools, and malformed receipts take the normal
+verification path. A receipt is never permission to bypass resource integrity.
+
+Packaging writes `media-tools/preparer-revision` from the recursively imported
+Python sources, encoder bytes and runtime package versions. Cold receipt
+publication checks output SHA between identity observations; warm probes use
+identities only, followed by authoritative framework verification. The existing
+`mod_counters` command exposes `v82.media.helper_spawns`,
+`v82.media.receipt_hits` and `v82.media.receipt_misses`; hit/miss counts measure
+probe calls rather than launches. No runtime log files are introduced.
+
 ## Two-player netplay handoff
 
 Owner validation, 2026-10-02: the isolated LAN / Direct IP pair exposes original

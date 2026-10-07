@@ -43,6 +43,18 @@ if(BUILD_TESTING)
         add_test(NAME v82-${enhancement} COMMAND v82-${enhancement}-test)
     endforeach()
     add_test(NAME v82-music-import COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_music_import.py")
+    add_test(NAME v82-media-revision COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_media_revision.py")
+    add_executable(v82-media-receipt-test tests/test_media_receipt.cpp
+        "${PSXRECOMP_ROOT}/runtime/src/cue_sheet.cpp"
+        "${PSXRECOMP_ROOT}/runtime/src/disc_path.cpp"
+        "${PSXRECOMP_ROOT}/runtime/src/iso_reader.cpp"
+        "${PSXRECOMP_ROOT}/runtime/src/mod_media.cpp"
+        "${PSXRECOMP_ROOT}/runtime/src/psx_sha256.c")
+    target_include_directories(v82-media-receipt-test PRIVATE
+        "${PSXRECOMP_ROOT}/runtime/include" "${PSXRECOMP_ROOT}/recompiler/include"
+        "${PSXRECOMP_ROOT}/recompiler/lib/toml11")
+    target_link_libraries(v82-media-receipt-test PRIVATE chdr-static)
+    add_test(NAME v82-media-receipt COMMAND v82-media-receipt-test)
     add_test(NAME v82-animation-timing COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_animation_timing.py")
     add_executable(v82-lightning-test tests/test_lightning.cpp src/mods/v82_vehicle_package.cpp)
     target_include_directories(v82-lightning-test PRIVATE src/mods "${PSXRECOMP_ROOT}/runtime/include")
