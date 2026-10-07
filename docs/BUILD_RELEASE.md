@@ -1,12 +1,16 @@
 # Building v0.1.2
 
-The private title repository pins the matching private framework and shared UI
-as submodules. A collaborator needs access to both `mstan/Vigilante82PSXRecomp`
-and `mstan/psxrecomp-v82` to build from source:
+The private title repository pins the public `RetroPortingToolKit/psxrecomp`
+framework and `RetroPortingToolKit/recomp-ui` launcher as submodules. A
+collaborator needs access to `mstan/Vigilante82PSXRecomp` to build from source:
 
 ```
 git clone --recurse-submodules git@github.com:mstan/Vigilante82PSXRecomp.git
 ```
+
+For an existing clone, run `git submodule sync --recursive` before
+`git submodule update --init --recursive` to use the current public URLs and
+the commits pinned by the title.
 
 Players need only the release download, their complete USA sequel disc, and
 any optional original/N64 donor media. See `packaging/release/START_HERE.txt`.
@@ -31,6 +35,11 @@ and writes ignored `game.local.toml`. Invoke `psxrecomp-game --config
 game.local.toml --project-root psxrecomp-v4` to generate the ignored main C.
 Never hand-edit generated C or commit donor media, captures or converted assets.
 
+Resident Loading is the title's loading option. The bundled media importer
+prepares selected owner media and records verified persistent receipts; warm
+launches reuse unchanged imports. The build packages its importer revision
+alongside the helper, and framework resolution verifies the prepared outputs.
+
 ## Production build and packaging
 
 Windows: configure this title with Ninja, `CMAKE_BUILD_TYPE=Release`,
@@ -53,7 +62,7 @@ are developer inputs and must never be bundled or checked into this repository.
 Run `tools/package_release.ps1` for Windows, or
 `bash tools/package_appimage.sh <linux-build> <native-recompiler-build>` for
 Linux. Both use `tools/package_release.py` and the framework's shared staging
-implementation, verify the build version, all ten bundled mod packages,
+implementation, verify the build version, all eleven bundled mod packages,
 the matching native overlay cache, and the media/overlay tools. Staging requires
 an empty output directory. Packages appear under ignored `dist/`.
 
