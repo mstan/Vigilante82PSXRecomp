@@ -12,10 +12,17 @@ It also retains the newer native replay, PGXP hook build, stable world filtering
 and resident loader/load-floor work. The owner's release checkout, generated
 bodies, media, caches and saves are separate inputs and were not modified.
 
-The candidate pins shared framework `8f95b599997399a476062e99634ddbb67e5c8731`
+The candidate pins shared framework `e5e2dca85c2e7c1758c6de27870599103a1f8bfc`
 (codegen `18d1867bb4`). This includes the corrected native HOLD presentation,
 render-pass background-tag rollback, per-primitive filter batching and native
 identity hashing. These shared changes require title requalification together.
+
+The resumed first-review build uses common UI03d58aa0 and the framework's exact
+recomp-net dependency e2491d2, retaining two-player/netplay support. Local legal
+media is read from `_wt-pr544-v82/media`; no owner files are changed. Build
+ENHANCED and its native cache, then let the owner check an arena, camera motion,
+sky/water/HUD at wide aspect, pause, reload/revisit, and existing multiplayer.
+Broad automated matrices are deferred per the owner's latest instruction.
 
 Primary media is the complete 17-track USA sequel, SLUS-00868. Existing import
 contracts declare 301,703,168 decoded data bytes, data digest
