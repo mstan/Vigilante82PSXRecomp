@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(PSXRECOMP_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/psxrecomp-v4" CACHE PATH "psxrecomp source")
 set(PSX_NETPLAY ON CACHE BOOL "Enable two-player V8:2 netplay" FORCE)
 include("${PSXRECOMP_ROOT}/runtime/runtime.cmake")
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/LauncherArtwork.cmake")
 if(NOT PSXRECOMP_HAS_RECOMP_NET)
     message(FATAL_ERROR "V8:2 netplay requires recomp-net; initialize the framework submodule or set RECOMP_NET_ROOT.")
 endif()
@@ -28,7 +29,8 @@ psxrecomp_add_runtime_target(psx-runtime
     GAME_VERSION "${V82_RELEASE_VERSION}"
     WINDOW_TITLE "Vigilante 8: 2nd Offense Recompiled"
     DEFAULT_GAME_CONFIG_PATH "game.toml"
-    EXCLUDE_BUILTIN_MODS psx.enhancement.cd-speed
+    LAUNCHER_BOXART "${V82_LAUNCHER_BOXART}"
+    EXCLUDE_BUILTIN_MODS psx.enhancement.cd-speed psx.enhancement.fast-loading
     PRELOADED_MODS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mods/preloaded"
     EXTRAS_SOURCES ${TITLE_PLUGINS})
 set_target_properties(psx-runtime PROPERTIES OUTPUT_NAME "Vigilante82PSXRecomp")
