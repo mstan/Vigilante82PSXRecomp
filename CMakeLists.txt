@@ -34,7 +34,10 @@ psxrecomp_add_runtime_target(psx-runtime
     WINDOW_TITLE "Vigilante 8: 2nd Offense Recompiled"
     DEFAULT_GAME_CONFIG_PATH "game.toml"
     LAUNCHER_BOXART "${V82_LAUNCHER_BOXART}"
-    EXCLUDE_BUILTIN_MODS psx.enhancement.cd-speed psx.enhancement.fast-loading
+    # Resident Loading owns acceleration; omit generic CD and host pacing.
+    EXCLUDE_BUILTIN_MODS
+        psx.enhancement.cd-speed
+        psx.enhancement.fast-loading
     PRELOADED_MODS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mods/preloaded"
     EXTRAS_SOURCES ${TITLE_PLUGINS})
 psxrecomp_add_implementation(psx-runtime
