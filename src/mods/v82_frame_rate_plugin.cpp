@@ -186,7 +186,6 @@ struct Snapshot {
 Snapshot snapshots[2];
 unsigned current = 0;
 uint32_t vblanks = 0;
-bool crossfade = false;
 
 // What frame k blends from: matched by pointer AND identity, since objects are
 // heap-allocated and a freed address can be reused by an unrelated object.
@@ -417,17 +416,6 @@ int pass(CPUState* cpu, void*, uint32_t alpha_q16) {
     return 1;
 }
 
-// While passes cannot run for a lasting reason, a crossfade is better than
-// stock-rate frames; switch back to HOLD once they can.
-void update_fallback(uint32_t status) {
-    const bool lasting = status == PSX_MOD_RENDER_PASS_BACKEND || status == PSX_MOD_RENDER_PASS_DISABLED;
-    if (lasting != crossfade) {
-        crossfade = lasting;
-        psx_mod_set_frame_interpolation_blend(lasting ? PSX_MOD_FRAME_INTERPOLATION_MOTION_ADAPTIVE
-                                                      : PSX_MOD_FRAME_INTERPOLATION_HOLD);
-    }
-}
-
 void on_wait_flip(CPUState* cpu, uint32_t) {
     if (g_psx_render_pass_active) return;
     Snapshot& now = snapshots[current];
@@ -444,7 +432,12 @@ void on_wait_flip(CPUState* cpu, uint32_t) {
     psx_mod_counter_add("v82.fr.frames", 1);
 
     const uint32_t status = psx_mod_render_pass_status();
-    update_fallback(status);
+    // Retain the last authored frame when native replay cannot run. HOLD
+    // also preserves distinct native phase images in the shared presenter.
+    if (status != PSX_MOD_RENDER_PASS_READY) {
+        psx_mod_counter_add("v82.fr.native_unavailable", 1);
+        return;
+    }
     if (!before.valid) { psx_mod_counter_add("v82.fr.skip_no_history", 1); return; }
     // world(k) is drawn by the VBlank callback that flipped to world(k-1);
     // until that has run there is nothing to show yet.
@@ -574,7 +567,6 @@ void activate() {
     split_hud[0].valid = split_hud[1].valid = false;
     split_pending = false;
     for (auto& pair : split_snapshots) for (auto& s : pair) s.valid = false;
-    crossfade = false;
     psx_mod_set_frame_interpolation_source(PSX_MOD_FRAME_SOURCE_FLIP);
     psx_mod_set_frame_interpolation_blend(PSX_MOD_FRAME_INTERPOLATION_HOLD);
     psx_mod_set_frame_interpolation(uint32_t(fps));

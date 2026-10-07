@@ -1,7 +1,10 @@
 # Resident Loading
 
 `v82.enhancement.resident-loading` is enabled by default for SLUS-00868.
-Disable **Resident Loading** in Mods to restore the original loading path.
+The build selects `PSX_EXECUTION_PROFILE=ENHANCED` (default) for this native
+adapter, or `REFERENCE` for the original generated guest routines without
+resident hooks. Use separate build/cache directories. The existing Mods
+preference still controls whether the ENHANCED product feature is active.
 Guest CD timing, movies (STR), speech (XA) and CD music are unchanged.
 
 ## Preparation
@@ -25,7 +28,9 @@ py -3 tools/v82_resident_catalog.py --disc "<SLUS-00868>.cue" --output src/mods/
 ## Guest contract
 
 The adapter hooks the game's stream API in the main executable and guards it
-with a SHA-256 of the loader text 80017F50..80018708 plus each entry word.
+with a SHA-256 of the loader text 80017F50..80018708, the load-floor routines
+and their callers (13 ranges in `v82_resident_catalog.inc`), plus each entry
+word. The digest is `b906ebfec04550da36a8a13cf621d15ac38d51d07254a55a27264a78c11eaff4`.
 
 | Entry | Served behaviour | Kept original |
 | --- | --- | --- |
@@ -47,8 +52,9 @@ mod plan.
 `{"cmd":"resident_status"}` reports the pack; `{"cmd":"resident_events"}`
 returns the always-on service ring (every Begin/End/WholeRead, served or not,
 with guest frame and cycle). `mod_counters` carries `v82.resident.*`.
-Debug builds accept `PSX_V82_RESIDENT_OBSERVE=1`: record loader calls, never
-serve (a timing-identical "off" arm with the same event windows).
+`v82.resident.reference` identifies activation of the REFERENCE route. The
+former debug environment selectors for observing without serving and disabling
+load-floor shims are removed; comparisons use separately built profiles.
 
 ## Validation
 
@@ -56,4 +62,9 @@ serve (a timing-identical "off" arm with the same event windows).
 loader over 400 randomized Read/ReadByte/Seek sequences (bytes, position,
 sector buffer), snapshot restore, fallback, identity and code-contract
 declines, and WholeRead bounds. `v82-resident-catalog` checks the catalog
-against `V82_DISC` when set.
+against `V82_DISC` when set. The contract fixture also rejects a failed second
+VRAM upload without publishing native completion, allowing the original
+decoder to overwrite the complete rectangle. This added case awaits a compiled
+run in the campaign candidate. Historical load improvement (~307 to 45 frames
+in one arena case) is not a current-build qualification receipt. See
+[PARITY_QUALIFICATION.md](PARITY_QUALIFICATION.md) for the remaining gates.

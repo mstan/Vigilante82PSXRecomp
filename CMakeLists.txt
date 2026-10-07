@@ -18,6 +18,9 @@ if(NOT GAME_C)
 endif()
 file(GLOB TITLE_PLUGINS CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/*.c" "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/*.cpp")
+list(REMOVE_ITEM TITLE_PLUGINS
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/v82_resident.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/v82_resident_reference.cpp")
 # PGXP: the one runtime is the PGXP hook flavour (-DPSX_PGXP=1, overlay
 # flavour 2), so the default-on psx.enhancement.pgxp package reaches dataflow
 # coverage. The generated C already carries the PGXP_*() hook sites.
@@ -34,6 +37,20 @@ psxrecomp_add_runtime_target(psx-runtime
     EXCLUDE_BUILTIN_MODS psx.enhancement.cd-speed psx.enhancement.fast-loading
     PRELOADED_MODS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mods/preloaded"
     EXTRAS_SOURCES ${TITLE_PLUGINS})
+psxrecomp_add_implementation(psx-runtime
+    NAME v82-resident-loading CONTRACT slus00868-stream-and-load-floor-v1
+    HLE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/v82_resident.cpp"
+    LLE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/v82_resident_reference.cpp"
+    CONTRACT_FILES
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/v82_resident.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/v82_resident_catalog.inc"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/v82_lzss.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/tools/v82_resident_catalog.py"
+        "${PSXRECOMP_ROOT}/runtime/include/mod_resident.h"
+        "${PSXRECOMP_ROOT}/runtime/include/mod_plugins.h"
+        "${PSXRECOMP_ROOT}/runtime/src/mod_resident.cpp"
+        "${PSXRECOMP_ROOT}/runtime/src/mod_guest_services.c"
+        "${PSXRECOMP_ROOT}/runtime/include/psx_cycle_freeze.h")
 set_target_properties(psx-runtime PROPERTIES OUTPUT_NAME "Vigilante82PSXRecomp")
 if(BUILD_TESTING)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)

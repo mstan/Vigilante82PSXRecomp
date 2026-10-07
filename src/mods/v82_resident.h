@@ -51,8 +51,9 @@
  * resident pack is active and the code contract (loader plus every function
  * above) matches, and otherwise leaves the original path. Every decision
  * depends on guest state and the pack alone, so netplay peers with the same
- * plan agree. Debug builds: PSX_V82_LOAD_FLOOR=0 keeps resident serving and
- * turns the five shims off (A/B comparison). */
+ * plan agree. ENHANCED selects this adapter and its five shims; REFERENCE
+ * installs no loader hooks and runs the original generated bodies. Select
+ * PSX_EXECUTION_PROFILE at build time in separate output directories. */
 #include <stdint.h>
 
 namespace v82_resident {

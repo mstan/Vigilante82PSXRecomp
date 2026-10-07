@@ -18,13 +18,22 @@ def main():
     ap.add_argument('--cache-dir', required=True, type=Path)
     ap.add_argument('--download-cache', required=True, type=Path)
     ap.add_argument('--platform', required=True, choices=('win', 'linux'))
+    ap.add_argument('--framework', type=Path, default=ROOT / 'psxrecomp-v4')
     ap.add_argument('--mingw-bin', type=Path)
     ap.add_argument('--zip', type=Path)
     args = ap.parse_args()
     check()
     version = (ROOT / 'packaging/release/VERSION').read_text().strip()
     build, stage = args.build_dir.resolve(), args.stage.resolve()
-    fw = ROOT / 'psxrecomp-v4'
+    fw = args.framework.resolve()
+    if args.platform == 'win' and (not args.mingw_bin or not args.zip):
+        raise SystemExit('Windows packaging requires --mingw-bin and --zip')
+    executable = 'Vigilante82PSXRecomp' + ('.exe' if args.platform == 'win' else '')
+    with (build / executable).open('rb') as stream:
+        magic = stream.read(4)
+    if (args.platform == 'win' and not magic.startswith(b'MZ')) or (
+            args.platform == 'linux' and magic != b'\x7fELF'):
+        raise SystemExit('Runtime binary does not match the requested package platform')
     if (build / 'psx_game_version.txt').read_text().strip() != version:
         raise SystemExit('Build version does not match release VERSION')
     if stage.exists() and any(stage.iterdir()):
@@ -35,7 +44,6 @@ def main():
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, destination)
 
-    executable = 'Vigilante82PSXRecomp' + ('.exe' if args.platform == 'win' else '')
     copy(build / executable, stage / executable)
     for tree in ('assets', 'media-tools'):
         shutil.copytree(build / tree, stage / tree, symlinks=True)
@@ -98,10 +106,16 @@ def main():
                 name = line.split('DLL Name:')[1].strip().lower()
                 if name.removesuffix('.dll') not in allowed and not name.startswith('api-ms-win-'):
                     raise SystemExit(f'Runtime requires an unbundled non-system DLL: {name}')
-        if not args.zip:
-            raise SystemExit('Windows packaging requires --zip')
+        # Bind after all executable mutations, including any future signing.
+        print(shared('stage-execution', '--binary', stage / executable,
+                     '--manifest', build / (executable.removesuffix('.exe') + '.execution.json')))
         subprocess.run([sys.executable, str(fw / 'tools/create_release_zip.py'),
                         '--source', str(stage), '--output', str(args.zip.resolve())], check=True)
+    else:
+        # AppImage deployment can rewrite RPATH; its wrapper binds again to
+        # the final ELF using this validated contract as the input manifest.
+        print(shared('stage-execution', '--binary', stage / executable,
+                     '--manifest', build / (executable + '.execution.json')))
     print(f'Verified {args.platform} player payload: {stage}')
 
 

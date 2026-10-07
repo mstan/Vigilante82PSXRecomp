@@ -15,7 +15,7 @@ id = "widescreen"
 name = "Widescreen"
 description = "Enable Vigilante 8: 2nd Offense's native-wide battle view. The render target, terrain selection and sky grow with the view; the HUD anchors to the new screen edges."
 group = "Display"
-default_enabled = false
+default_enabled = true
 
 [[option]]
 feature = "widescreen"

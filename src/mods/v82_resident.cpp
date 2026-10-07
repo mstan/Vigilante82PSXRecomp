@@ -10,7 +10,6 @@
 #include "mod_resident.h"
 #include <algorithm>
 #include <cstdint>
-#include <cstdlib>
 #include <cstring>
 #include <unordered_map>
 #include <vector>
@@ -28,9 +27,9 @@ constexpr uint32_t NoFile = UINT32_MAX;
 PSXResidentFile files[FileCount];
 const PSXResidentPack* pack = nullptr;
 uint32_t record = 0;      /* guest address of the stream record */
-bool observe = false;     /* debug tools: record loader calls, never serve */
+bool observe = false;     /* contract fixture: record calls without serving */
 bool forcing_cd = false;  /* a fallback is starting the original CD stream */
-bool floor_on = true;     /* debug tools: PSX_V82_LOAD_FLOOR=0 turns A-E off */
+bool floor_on = true;     /* contract fixture can isolate the five load shims */
 bool in_uncharged = false; /* the allocator's own entry inside its uncharged call */
 /* Pre-decoded textures by (size, first stream bytes): derived blob indexes.
  * Built from the pack alone, so both netplay peers hold the same index. */
@@ -363,10 +362,11 @@ void on_lzss(CPUState* c, uint32_t) {
         const uint32_t rows = std::min<uint32_t>(rows_per_chunk, uint32_t(h - line));
         if (!psx_mod_host_write_ram(staging, pixels + size_t(line) * row, rows * row) ||
             !psx_mod_psyq_load_image(uint32_t(x), uint32_t(y + line), uint32_t(w), rows, staging)) {
-            /* Unreachable after the checks above; never leave a half upload
-             * unreported. */
+            /* Do not publish completion for a partial upload. Let the
+             * original decoder write the full rectangle from the unchanged
+             * compressed source, replacing any already uploaded rows. */
             psx_mod_counter_add("v82.resident.texture_upload_failed", 1);
-            break;
+            return;
         }
         line += int(rows);
     }
@@ -436,12 +436,6 @@ void activate() {
     floor_on = true;
     in_uncharged = false;
     texture_index.clear();
-#ifndef PSX_NO_DEBUG_TOOLS
-    const char* mode = std::getenv("PSX_V82_RESIDENT_OBSERVE");
-    observe = mode && !std::strcmp(mode, "1");
-    const char* floor_mode = std::getenv("PSX_V82_LOAD_FLOOR");
-    floor_on = !(floor_mode && !std::strcmp(floor_mode, "0"));
-#endif
     for (uint32_t i = 0; i < FileCount; ++i)
         files[i] = {kCatalog[i].path, kCatalog[i].size, kCatalog[i].sha256};
     PSXResidentSpec spec{};

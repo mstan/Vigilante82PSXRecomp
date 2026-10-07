@@ -18,7 +18,7 @@ id = "frame-rate"
 name = "High Frame Rate"
 description = "Draws true in-between frames during single-player and netplay battles at the selected rate. Menus, briefings and FMVs keep their authored timing. Requires the OpenGL renderer, which it selects."
 group = "Display"
-default_enabled = false
+default_enabled = true
 
 [[option]]
 feature = "frame-rate"

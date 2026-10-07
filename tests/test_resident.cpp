@@ -34,6 +34,7 @@ std::vector<UnchargedCall> uncharged_calls;
 uint32_t uncharged_result = 0;
 std::vector<uint16_t> vram(1024 * 512);
 unsigned load_images = 0;
+int fail_image_after = -1;
 struct SpuUpload { uint32_t address, source, bytes; int stop; };
 std::vector<SpuUpload> spu_uploads;
 uint8_t* at(uint32_t a) {
@@ -73,6 +74,7 @@ uint32_t psx_mod_call_guest_uncharged(CPUState* c, uint32_t f, uint32_t ra, uint
 }
 int psx_mod_psyq_load_image(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint32_t src) {
     if (!w || !h || x + w > 1024u || y + h > 512u || (src & 3u)) return 0;
+    if (fail_image_after >= 0 && load_images == unsigned(fail_image_after)) return 0;
     ++load_images;
     for (uint32_t r = 0; r < h; ++r)
         for (uint32_t i = 0; i < w; ++i) vram[(y + r) * 1024u + x + i] = psx_mod_read_half(src + 2u * (r * w + i));
@@ -624,6 +626,19 @@ int main() try {
       c = floor_call(BankChunkWriteReturn, 0x80101000u, 0x400u);
       require(!hook(SpuWrite, c), "switch gates E"); }
     floor_on = true;
+
+    // A rejected second VRAM chunk must let the original decoder finish the
+    // full rectangle, rather than report a successful partial native upload.
+    { const auto& t = tex[0];
+      psx_mod_write_half(Rect, 512); psx_mod_write_half(Rect + 2, 100);
+      psx_mod_write_half(Rect + 4, uint16_t(t.w)); psx_mod_write_half(Rect + 6, uint16_t(t.h));
+      std::memcpy(at(Src), &exp[stream_at[0]], fake.derived[0].meta[2]);
+      load_images = 0; fail_image_after = 1;
+      CPUState c = floor_call(TextureDecodeReturn, Rect, Src);
+      c.gpr[2] = 0x12345678u;
+      require(!hook(Lzss, c) && load_images == 1 && c.gpr[2] == 0x12345678u,
+              "partial texture upload keeps original continuation");
+      fail_image_after = -1; }
 
     // Unavailable pack: every hook is inert.
     fail_prepare = true; activate();
