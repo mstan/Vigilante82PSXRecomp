@@ -134,7 +134,14 @@ int main() {
         Stamps raw; v82_media_cache::add_disc(raw, data);
         write(cue, "FILE \"data.bin\" BINARY\nTRACK 01 MODE2/2352\nINDEX 01 00:00:00\nFILE \"audio.bin\" BINARY\nTRACK 02 AUDIO\nINDEX 01 00:00:00\n");
         Stamps with_cue; v82_media_cache::add_disc(with_cue, data);
-        check(raw != with_cue && with_cue.count(v82_media_cache::path_text(audio)), "new sibling CUE/audio dependency included");
+        // CUE resolution/directory iteration may use a different Windows
+        // separator spelling. Assert file ownership, not string spelling.
+        bool contains_audio = false;
+        for (const auto& [path, stamp] : with_cue) {
+            (void)stamp;
+            if (fs::equivalent(fs::u8path(path), audio)) contains_audio = true;
+        }
+        check(raw != with_cue && contains_audio, "new sibling CUE/audio dependency included");
         const auto before = with_cue;
         replace_preserving_time(audio, std::string(2352, 'z'));
         Stamps changed; v82_media_cache::add_disc(changed, data);
