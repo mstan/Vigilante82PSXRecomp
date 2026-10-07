@@ -16,3 +16,10 @@ notice. Players supply all original game discs and optional donor ROMs. No
 retail BIOS, disc image, converted car/music/arena assets or personal saves are
 included. Bundled native overlay caches contain compiled code, not captures
 or media archives.
+
+The launcher uses the USA PlayStation cover archived by
+[Libretro Thumbnails](https://github.com/libretro-thumbnails/Sony_-_PlayStation/blob/25c6d021383b6dd4f7c74bad24845b15f6fb7d04/Named_Boxarts/Vigilante%208%20-%202nd%20Offense%20%28USA%29.png).
+The build downloads a pinned, SHA-256-verified image into its build directory;
+the source repository does not contain the artwork. Cover artwork and game
+trademarks retain their owners' rights and are not covered by the source license.
+Offline builds can set `V82_LAUNCHER_BOXART` to an existing cover image.

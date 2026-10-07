@@ -131,8 +131,10 @@ On Play, the bundled importer extracts and converts the required content into
 the user's cache, and the engine checks its exact size and SHA-256. Subsequent
 launches reuse verified results. Neither Python nor extraction tools need to be
 installed by players. Original vehicles work without Dreamland; Dreamland works
-without an original PS1 disc. CD Speed is omitted from this title's catalog;
-Fast Loading is the single loading-speed control.
+without an original PS1 disc. Resident Loading keeps verified data files in
+memory and speeds up the game's loading work. Disable it in Mods to restore
+the original loading path. CD Speed and Fast Loading (host pacing) are omitted
+from this title's catalog.
 
 Disc images can be CUE/BIN or CHD. Original music needs the audio tracks, and
 original result voices need raw XA sectors; a data-only 2048-byte ISO has neither.

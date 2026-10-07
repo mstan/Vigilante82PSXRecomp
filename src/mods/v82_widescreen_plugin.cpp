@@ -118,7 +118,7 @@ void group_hud_anchors(HudPrim* prims,unsigned n){
         if(best>=0)prims[i].anchor=prims[best].anchor;
     }
 }
-void tag_chain(uint32_t slot,uint32_t stop,bool sky,bool compact_hud=false){
+void tag_chain(uint32_t slot,uint32_t stop,bool sky,bool left_hud=false){
     if(!slot || !ram(slot))return;
     uint32_t packets[512],count=0,current=rd(slot)&0xFFFFFF;
     while(current!=stop){
@@ -140,11 +140,11 @@ void tag_chain(uint32_t slot,uint32_t stop,bool sky,bool compact_hud=false){
         i+=command_words(op);
     }
     if(!sky){
-        // Modes 4/5 place the complete vertical-split HUD in one 160px group.
-        // Independent 320px edge classification separates its weapon and
-        // ammo packets. Move this group together; radar/reticle packets are
-        // emitted after this chain and retain their own placement.
-        if(compact_hud)for(unsigned i=0;i<n;++i)prims[i].anchor=-1;
+        // The producer's complete HUD uses one common anchor. Container/edge
+        // classification would leave its target/weapon panel near the centre
+        // while the radar moves left. Only presentation tags change; native
+        // coordinates, spacing and the OT tail outside this interval do not.
+        if(left_hud)for(unsigned i=0;i<n;++i)prims[i].anchor=-1;
         else group_hud_anchors(prims,n);
         // Tag in emission order; grouping only changes the anchors.
         std::sort(prims,prims+n,[](const HudPrim& a,const HudPrim& b){return a.order<b.order;});
@@ -452,7 +452,19 @@ void entry(CPUState* c,uint32_t pc){
         }
     }else if(pc==0x8001C910){sky_slot=rd(GP+0xCE0)+0x3FFC;sky_head=rd(sky_slot)&0xFFFFFF;}
     else if(pc==0x80037A00){hud_slot=c->gpr[6];hud_head=rd(hud_slot)&0xFFFFFF;hud_mode=c->gpr[5];}
-    else if(pc==0x8003827C){if(hud_slot==c->gpr[6])tag_chain(hud_slot,hud_head,false,hud_mode==4||hud_mode==5);hud_slot=0;}
+    else if(pc==0x8003827C){
+        if(hud_slot==c->gpr[6]){
+            // 37A00 selects its 48-byte HUD layout with A1: modes 0/1 are
+            // the full-width gameplay layouts. Keep every emitted piece at
+            // the left with its authored offsets, rather than anchoring each
+            // backing panel separately. Other players/layouts retain their
+            // existing policy; compact vertical-split modes 4/5 stay together.
+            const bool full_hud=!psx_netplay_active() && viewport_width()==320 &&
+                hud_mode<=1 && world();
+            tag_chain(hud_slot,hud_head,false,full_hud || hud_mode==4 || hud_mode==5);
+        }
+        hud_slot=0;
+    }
 }
 void activate(){
     enabled=false;world_seen=false;vblanks=last_world=sky_slot=hud_slot=hud_mode=0;

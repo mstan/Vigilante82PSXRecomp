@@ -1,5 +1,67 @@
 # Combined Arcade playtest
 
+## Prepared-media receipts
+
+Verified imports remain in the external `psxrecomp/imports` cache. The title
+records a receipt after successful preparation, with the importer revision,
+selected media and CUE dependencies, extracted CHD tracks, expected resources
+and filesystem identities. An unchanged receipt returns prepared paths without
+starting the conversion helper or rehashing source discs. Framework resolution
+still validates every output's expected SHA and retains immutable bytes for
+the launch and netplay fingerprint checks. Unsupported filesystem identities,
+missing files, changed sources or tools, and malformed receipts take the normal
+verification path. A receipt is never permission to bypass resource integrity.
+
+Packaging writes `media-tools/preparer-revision` from the recursively imported
+Python sources, encoder bytes and runtime package versions. Cold receipt
+publication checks output SHA between identity observations; warm probes use
+identities only, followed by authoritative framework verification. The existing
+`mod_counters` command exposes `v82.media.helper_spawns`,
+`v82.media.receipt_hits` and `v82.media.receipt_misses`; hit/miss counts measure
+probe calls rather than launches. No runtime log files are introduced.
+
+### Launch preparation spike accepted (2026-10-07)
+
+The owner tested the staged build, reported that it "seems pretty snappy",
+and requested closing the spike. Preparation starts when the selected disc or
+mod inputs change. Unchanged launches load verified cached content before the
+launcher opens and reuse that plan on Play without a preparation screen.
+
+The accepted executable used title `24cf8e34`, framework `15d71183`, and the
+feature-only recomp-ui integration `54fc1fd` on the existing `d3151bf` chain.
+Its SHA-256 is
+`3cc60b3722731f189cfc3dc7ed8e239fc248940681e5add81950461142e85bd6`.
+With actual CUE/N64 media, a fresh warm process ran zero conversion helpers,
+zero disc hashes and zero launcher preparation jobs. Verified preloading took
+1.04 seconds; the reused runtime commit took 44.9 ms. These are startup
+measurements, not gameplay frame-rate results.
+
+Validation passed 25 title checks, four integrated framework checks, five UI
+checks and eight hidden launcher scenarios. One optional Dreamland subcase was
+skipped. The accepted build retains the sky, complete left HUD, launcher art,
+disc persistence and render-replay admission fixes; Resident Loading is the
+loading option. Settings and memory cards were preserved.
+
+Acceptance was recorded before integration. The main-branch dependency pins
+are public framework `d3b22491` and recomp-ui `1a8ae64b`, preserving their newer
+upstream changes as well as the accepted fixes. A clean title checkout at
+`252889e0` built against those pinned submodules with strict BIOS stamp checks
+and passed all 25 registered checks; the same optional Dreamland subcase was
+skipped. Framework and launcher integration passed 19 and six focused checks,
+respectively, plus the earlier eight launcher lifecycle probes.
+
+The new executable SHA-256 is
+`f2e6eb464b1a203c1516845a17fd2f8beb016b102b9cdc052a3ad5b6cb578165`.
+After establishing receipts for its newly packaged importer, a fresh process
+used zero conversion helpers, zero disc hashes and no preparation screen.
+Verified preload took 1.03 seconds and the reused runtime commit took 46.3 ms;
+the game advanced into its rendered introduction. This qualifies the merged
+dependency build, without extending the earlier gameplay acceptance.
+
+The separate periodic gameplay hitch remains tracked in `beads-eio.12.18`.
+Full CHD extraction and the parked framework work remain outside this spike's
+validation. No release was made as part of this landing.
+
 ## Two-player netplay handoff
 
 Owner validation, 2026-10-02: the isolated LAN / Direct IP pair exposes original

@@ -6,7 +6,9 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 17)
 set(PSXRECOMP_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/psxrecomp-v4" CACHE PATH "psxrecomp source")
 set(PSX_NETPLAY ON CACHE BOOL "Enable two-player V8:2 netplay" FORCE)
+set(PSX_LAUNCHER_MOD_COMMIT_WORKER_SAFE ON CACHE BOOL "V82 media preparers support serialized host-only worker calls" FORCE)
 include("${PSXRECOMP_ROOT}/runtime/runtime.cmake")
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/LauncherArtwork.cmake")
 if(NOT PSXRECOMP_HAS_RECOMP_NET)
     message(FATAL_ERROR "V8:2 netplay requires recomp-net; initialize the framework submodule or set RECOMP_NET_ROOT.")
 endif()
@@ -28,7 +30,8 @@ psxrecomp_add_runtime_target(psx-runtime
     GAME_VERSION "${V82_RELEASE_VERSION}"
     WINDOW_TITLE "Vigilante 8: 2nd Offense Recompiled"
     DEFAULT_GAME_CONFIG_PATH "game.toml"
-    EXCLUDE_BUILTIN_MODS psx.enhancement.cd-speed
+    LAUNCHER_BOXART "${V82_LAUNCHER_BOXART}"
+    EXCLUDE_BUILTIN_MODS psx.enhancement.cd-speed psx.enhancement.fast-loading
     PRELOADED_MODS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mods/preloaded"
     EXTRAS_SOURCES ${TITLE_PLUGINS})
 set_target_properties(psx-runtime PROPERTIES OUTPUT_NAME "Vigilante82PSXRecomp")
@@ -40,6 +43,18 @@ if(BUILD_TESTING)
         add_test(NAME v82-${enhancement} COMMAND v82-${enhancement}-test)
     endforeach()
     add_test(NAME v82-music-import COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_music_import.py")
+    add_test(NAME v82-media-revision COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_media_revision.py")
+    add_executable(v82-media-receipt-test tests/test_media_receipt.cpp
+        "${PSXRECOMP_ROOT}/runtime/src/cue_sheet.cpp"
+        "${PSXRECOMP_ROOT}/runtime/src/disc_path.cpp"
+        "${PSXRECOMP_ROOT}/runtime/src/iso_reader.cpp"
+        "${PSXRECOMP_ROOT}/runtime/src/mod_media.cpp"
+        "${PSXRECOMP_ROOT}/runtime/src/psx_sha256.c")
+    target_include_directories(v82-media-receipt-test PRIVATE
+        "${PSXRECOMP_ROOT}/runtime/include" "${PSXRECOMP_ROOT}/recompiler/include"
+        "${PSXRECOMP_ROOT}/recompiler/lib/toml11")
+    target_link_libraries(v82-media-receipt-test PRIVATE chdr-static)
+    add_test(NAME v82-media-receipt COMMAND v82-media-receipt-test)
     add_test(NAME v82-animation-timing COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_animation_timing.py")
     add_executable(v82-lightning-test tests/test_lightning.cpp src/mods/v82_vehicle_package.cpp)
     target_include_directories(v82-lightning-test PRIVATE src/mods "${PSXRECOMP_ROOT}/runtime/include")
