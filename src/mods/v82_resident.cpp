@@ -45,6 +45,11 @@ bool ram_span(uint32_t address, uint32_t bytes) {
            phys < limit && bytes <= limit - phys;
 }
 
+bool ram_overlap(uint32_t a, uint32_t a_bytes, uint32_t b, uint32_t b_bytes) {
+    const uint64_t a_phys = a & 0x1FFFFFFFu, b_phys = b & 0x1FFFFFFFu;
+    return a_phys < b_phys + b_bytes && b_phys < a_phys + a_bytes;
+}
+
 /* The loader text the adapter reproduces and every function the load floor
  * relies on, hashed from live guest RAM. */
 bool contract() {
@@ -310,7 +315,8 @@ void index_textures() {
 /* The pre-decoded pixels for the stream at guest `src`, or null. The match
  * is exact: every compressed byte the guest decoder would read equals the
  * pack's, so its output is the blob. */
-const uint8_t* find_texture(int w, int h, uint32_t src, uint32_t& file_out) {
+const uint8_t* find_texture(int w, int h, uint32_t src, uint32_t& file_out,
+                            uint32_t& consumed_out) {
     uint8_t head[8];
     if (!ram_span(src, 8u)) return nullptr;
     for (int i = 0; i < 8; ++i) head[i] = psx_mod_read_byte(src + uint32_t(i));
@@ -329,6 +335,7 @@ const uint8_t* find_texture(int w, int h, uint32_t src, uint32_t& file_out) {
             if (psx_mod_read_byte(src + i) != want[i]) break;
         if (i != meta[2]) continue;
         file_out = file;
+        consumed_out = meta[2];
         return pixels;
     }
     return nullptr;
@@ -348,11 +355,18 @@ void on_lzss(CPUState* c, uint32_t) {
     if (x < 0 || y < 0 || w <= 0 || h <= 0 || x + w > 1024 || y + h > 512 ||
         uint32_t(w) * 2u > chunk_bytes || !ram_span(sp - LzssFrame, LzssFrame) || !floor_ok())
         return;
-    uint32_t file = NoFile;
-    const uint8_t* pixels = find_texture(w, h, src, file);
+    uint32_t file = NoFile, consumed = 0;
+    const uint8_t* pixels = find_texture(w, h, src, file, consumed);
     if (!pixels) {
         psx_mod_counter_add("v82.resident.texture_unmatched", 1);
         psx_resident_record("v82.resident.texture", NoFile, src, uint32_t(w * h * 2), 0);
+        return;
+    }
+    // Native staging and DrawSync's guest stack must not overwrite inputs
+    // that the original decoder still needs if an upload is rejected.
+    if (ram_overlap(src, consumed, sp - LzssFrame, LzssFrame) ||
+        ram_overlap(rect, 8u, sp - LzssFrame, LzssFrame)) {
+        psx_mod_counter_add("v82.resident.texture_alias_declined", 1);
         return;
     }
     /* The game's queued GPU work (this texture's CLUT upload) comes first. */
@@ -364,7 +378,10 @@ void on_lzss(CPUState* c, uint32_t) {
             !psx_mod_psyq_load_image(uint32_t(x), uint32_t(y + line), uint32_t(w), rows, staging)) {
             /* Do not publish completion for a partial upload. Let the
              * original decoder write the full rectangle from the unchanged
-             * compressed source, replacing any already uploaded rows. */
+             * compressed source, replacing any already uploaded rows. The
+             * prefix is raw pixel replacement into the same rectangle, so
+             * uploading it twice is idempotent. Caller registers remain
+             * intact (psx_mod_call_guest restores its GPR/PC/HI/LO). */
             psx_mod_counter_add("v82.resident.texture_upload_failed", 1);
             return;
         }

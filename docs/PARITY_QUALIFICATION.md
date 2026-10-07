@@ -61,8 +61,14 @@ Catalog values are preserved; their current-disc check still needs execution.
 The fake-drive contract fixture covers randomized stream results, independent
 decoder output, state restore, identity/bounds, ordering and five load shims.
 It is not a real-caller comparison. This candidate adds second-chunk VRAM
-failure coverage, but its C++ fixture has not yet been compiled or run. The
-historical improvement from about 307 to 45 guest frames in one arena load is
+failure coverage that checks preserved registers, compressed source and
+rectangle, then drives an independent decoder fallback to the complete VRAM
+result. Already uploaded rows are raw pixel replacement into the same rectangle;
+the repeated prefix has the same pixels and is idempotent. Staging aliases of
+the compressed source or rectangle are declined before DrawSync or native writes.
+Real-caller failure injection remains a runtime gate. The C++ model fixture
+has not yet been compiled or run. The historical improvement from about 307
+to 45 guest frames in one arena load is
 a useful baseline, not a campaign speed claim.
 
 ## Actual presentation and geometry coverage

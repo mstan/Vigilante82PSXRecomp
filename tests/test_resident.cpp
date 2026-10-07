@@ -627,18 +627,61 @@ int main() try {
       require(!hook(SpuWrite, c), "switch gates E"); }
     floor_on = true;
 
-    // A rejected second VRAM chunk must let the original decoder finish the
-    // full rectangle, rather than report a successful partial native upload.
+    // A rejected second chunk leaves caller inputs and continuation intact.
+    // Drive an independent decoder fallback from those preserved inputs and
+    // verify the complete rectangle, including its idempotent prefix upload.
     { const auto& t = tex[0];
       psx_mod_write_half(Rect, 512); psx_mod_write_half(Rect + 2, 100);
       psx_mod_write_half(Rect + 4, uint16_t(t.w)); psx_mod_write_half(Rect + 6, uint16_t(t.h));
       std::memcpy(at(Src), &exp[stream_at[0]], fake.derived[0].meta[2]);
-      load_images = 0; fail_image_after = 1;
+      std::fill(vram.begin(), vram.end(), uint16_t(0xDEAD));
+      load_images = 0; fail_image_after = 1; guest_calls.clear();
       CPUState c = floor_call(TextureDecodeReturn, Rect, Src);
       c.gpr[2] = 0x12345678u;
+      const CPUState before = c;
       require(!hook(Lzss, c) && load_images == 1 && c.gpr[2] == 0x12345678u,
               "partial texture upload keeps original continuation");
-      fail_image_after = -1; }
+      require(!std::memcmp(c.gpr, before.gpr, sizeof c.gpr) && c.pc == before.pc &&
+                  c.hi == before.hi && c.lo == before.lo,
+              "native rejection preserves caller registers and continuation");
+      require(!std::memcmp(at(Src), &exp[stream_at[0]], fake.derived[0].meta[2]) &&
+                  psx_mod_read_half(Rect) == 512 && psx_mod_read_half(Rect + 2) == 100 &&
+                  psx_mod_read_half(Rect + 4) == t.w && psx_mod_read_half(Rect + 6) == t.h,
+              "native rejection preserves compressed source and rectangle");
+      require(guest_calls.size() == 1 && guest_calls[0].function == DrawSync,
+              "queued GPU work completes before the native prefix");
+      fail_image_after = -1;
+      std::vector<uint8_t> fallback;
+      uint32_t consumed = 0;
+      const std::vector<uint8_t> input(at(c.gpr[5]), at(c.gpr[5]) + fake.derived[0].meta[2]);
+      require(reference_decode(input, size_t(t.w) * size_t(t.h) * 2u, fallback, consumed),
+              "independent fallback decodes preserved input");
+      for (int row = 0; row < t.h; ++row)
+          for (int x = 0; x < t.w; ++x) {
+              const size_t offset = (size_t(row) * t.w + x) * 2u;
+              vram[size_t(100 + row) * 1024u + 512u + x] = uint16_t(fallback[offset] | fallback[offset + 1] << 8);
+          }
+      require(fallback == fake.derived[0].bytes, "fallback completes the intended texture");
+      for (int row = 0; row < t.h; ++row)
+          for (int x = 0; x < t.w; ++x) {
+              const size_t offset = (size_t(row) * t.w + x) * 2u;
+              require(vram[size_t(100 + row) * 1024u + 512u + x] ==
+                          uint16_t(fake.derived[0].bytes[offset] | fake.derived[0].bytes[offset + 1] << 8),
+                      "complete rectangle after native-prefix and fallback");
+          }
+      require(vram[100u * 1024u + 511u] == 0xDEAD &&
+                  vram[size_t(100 + t.h) * 1024u + 512u] == 0xDEAD,
+              "repeated upload leaves pixels outside the rectangle intact");
+      const uint32_t alias = Sp - LzssFrame + 0x10u;
+      std::memcpy(at(alias), &exp[stream_at[0]], fake.derived[0].meta[2]);
+      load_images = 0; guest_calls.clear();
+      c = floor_call(TextureDecodeReturn, Rect, alias);
+      require(!hook(Lzss, c) && load_images == 0 && guest_calls.empty(),
+              "staging alias declines before GPU or guest-stack work");
+      std::memcpy(at(alias), at(Rect), 8u);
+      c = floor_call(TextureDecodeReturn, alias, Src);
+      require(!hook(Lzss, c) && load_images == 0 && guest_calls.empty(),
+              "rectangle alias declines before GPU or guest-stack work"); }
 
     // Unavailable pack: every hook is inert.
     fail_prepare = true; activate();
