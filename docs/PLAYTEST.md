@@ -42,10 +42,25 @@ skipped. The accepted build retains the sky, complete left HUD, launcher art,
 disc persistence and render-replay admission fixes; Resident Loading is the
 loading option. Settings and memory cards were preserved.
 
-The source changes are committed on review branches; this acceptance does not
-merge or release them. The separate periodic gameplay hitch remains tracked
-in `beads-eio.12.18`. Full CHD extraction and the parked framework work are
-outside this spike's validation.
+Acceptance was recorded before integration. The main-branch dependency pins
+are public framework `d3b22491` and recomp-ui `1a8ae64b`, preserving their newer
+upstream changes as well as the accepted fixes. A clean title checkout at
+`252889e0` built against those pinned submodules with strict BIOS stamp checks
+and passed all 25 registered checks; the same optional Dreamland subcase was
+skipped. Framework and launcher integration passed 19 and six focused checks,
+respectively, plus the earlier eight launcher lifecycle probes.
+
+The new executable SHA-256 is
+`f2e6eb464b1a203c1516845a17fd2f8beb016b102b9cdc052a3ad5b6cb578165`.
+After establishing receipts for its newly packaged importer, a fresh process
+used zero conversion helpers, zero disc hashes and no preparation screen.
+Verified preload took 1.03 seconds and the reused runtime commit took 46.3 ms;
+the game advanced into its rendered introduction. This qualifies the merged
+dependency build, without extending the earlier gameplay acceptance.
+
+The separate periodic gameplay hitch remains tracked in `beads-eio.12.18`.
+Full CHD extraction and the parked framework work remain outside this spike's
+validation. No release was made as part of this landing.
 
 ## Two-player netplay handoff
 

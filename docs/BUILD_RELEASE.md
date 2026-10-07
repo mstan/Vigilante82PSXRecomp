@@ -62,7 +62,7 @@ are developer inputs and must never be bundled or checked into this repository.
 Run `tools/package_release.ps1` for Windows, or
 `bash tools/package_appimage.sh <linux-build> <native-recompiler-build>` for
 Linux. Both use `tools/package_release.py` and the framework's shared staging
-implementation, verify the build version, all eleven bundled mod packages,
+implementation, verify the build version, all bundled mod packages,
 the matching native overlay cache, and the media/overlay tools. Staging requires
 an empty output directory. Packages appear under ignored `dist/`.
 
