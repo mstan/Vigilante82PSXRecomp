@@ -142,10 +142,22 @@ int main() {
             if (fs::equivalent(fs::u8path(path), audio)) contains_audio = true;
         }
         check(raw != with_cue && contains_audio, "new sibling CUE/audio dependency included");
+        // Exercise serialization/reconstruction through the actual callbacks
+        // for both an auto-upgraded BIN and the owner's explicit CUE format.
+        auto cue_context = context;
+        for (const auto& picked : {data, cue}) {
+            cue_context.disc_path = picked;
+            check(prepare_with_worker(cue_context, outputs, error, fake_worker), "CUE cold callback establishes receipt");
+            const auto cold_calls = worker_calls;
+            check(registered().probe(cue_context, outputs, error), "CUE receipt serialization round trip");
+            check(registered().prepare(cue_context, outputs, error) && worker_calls == cold_calls,
+                  "CUE warm actual callback never invokes invalid helper");
+        }
         const auto before = with_cue;
         replace_preserving_time(audio, std::string(2352, 'z'));
         Stamps changed; v82_media_cache::add_disc(changed, data);
         check(before != changed, "audio replacement invalidates dependency closure");
+        check(!registered().probe(cue_context, outputs, error) && outputs.empty(), "CUE receipt invalidated by actual audio replacement");
         const auto n64 = root / "donor.z64"; write(n64, "rom1");
         Stamps rom; v82_media_cache::add_file(rom, n64);
         replace_preserving_time(n64, "rom2"); check(rom != v82_media_cache::refresh(rom), "N64 source replacement invalidates");
