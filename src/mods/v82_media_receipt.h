@@ -42,7 +42,8 @@ inline std::string quote(const std::string& text) {
     return out.str() + '"';
 }
 inline std::string hash_text(const std::string& text) {
-    uint8_t digest[32]; psx_sha256_compute(text.data(), text.size(), digest);
+    uint8_t digest[32];
+    psx_sha256_compute(reinterpret_cast<const uint8_t*>(text.data()), text.size(), digest);
     std::string result;
     for (uint8_t c : digest) { result += "0123456789abcdef"[c >> 4]; result += "0123456789abcdef"[c & 15]; }
     return result;

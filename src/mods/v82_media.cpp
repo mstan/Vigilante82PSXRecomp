@@ -119,13 +119,13 @@ fs::path worker_disc(const fs::path& source,const fs::path& cache) {
     // Reuse the framework's CHD reader; users need no external extraction tool.
     auto directory=cache/"v82-disc"/file_hash(path),cue=directory/"disc.cue";
     const auto receipt = directory / "extraction.toml";
-    Stamps source;
+    Stamps chd_source;
     bool reliable = false;
-    try { v82_media_cache::add_file(source, path); reliable = true; } catch (...) {}
+    try { v82_media_cache::add_file(chd_source, path); reliable = true; } catch (...) {}
     if (reliable) {
         try {
             const auto value = v82_media_cache::read_receipt(receipt);
-            auto stamps = source; v82_media_cache::add_disc(stamps, cue);
+            auto stamps = chd_source; v82_media_cache::add_disc(stamps, cue);
             if (toml::find<int>(value, "version") == 1 &&
                 stamps == v82_media_cache::read_stamps(value, "sources")) return cue;
         } catch (...) {} // Old/partial/modified extraction is rebuilt from the CHD.
@@ -157,9 +157,9 @@ fs::path worker_disc(const fs::path& source,const fs::path& cache) {
     if(!out)throw std::runtime_error("Cannot cache disc TOC");
     std::error_code ec; fs::remove(cue, ec); fs::rename(directory/"disc.cue.tmp",cue);
     if (reliable) {
-        if (source != v82_media_cache::refresh(source))
+        if (chd_source != v82_media_cache::refresh(chd_source))
             throw std::runtime_error("CHD changed during extraction; retry");
-        auto stamps = source; v82_media_cache::add_disc(stamps, cue);
+        auto stamps = chd_source; v82_media_cache::add_disc(stamps, cue);
         std::ostringstream receipt_text; receipt_text << "version = 1\n";
         v82_media_cache::write_stamps(receipt_text, "sources", stamps);
         v82_media_cache::atomic_write(receipt, receipt_text.str());
