@@ -146,40 +146,101 @@ int main(){
     }
     netplay_wide_width=0;c.gpr[2]=160;instruction(&c,0x8001C250);check(c.gpr[2]==160,"non-wide split has native culling");
     netplay_active=0;wr(GP+0xEDC,320);
-    enabled=true;hud_tags.clear();wr(0x80020000,0xFFFFFF);
-    c.gpr[5]=0;c.gpr[6]=0x80020000;entry(&c,0x80037A00);
-    wr(0x80020000,0x020100);wr(0x80020100,0x04FFFFFF);
-    wr(0x80020104,0x64000000);wr(0x80020108,288);
-    wr(0x8002010C,0);wr(0x80020110,12|(12<<16));
-    entry(&c,0x8003827C);
-    check(hud_tags.size()==1&&hud_tags[0].second==1,"single-player right HUD retains its native edge after a split HUD");
+    enabled=true;
     {
-        // Retail single-player status widget (GP0 ring, SLUS-00868): radar
-        // panel x16-80, status panel x80-164 with the vehicle icon x76-116 and
-        // a green/red health bar split at x106. The icon and bar belong to the
-        // centred status panel even though their own centres fall left of it.
+        // Mode 0/1 native HUD layout: radar x16, two-slot backing x80-164,
+        // target car x76 and weapon x122. Additional ammo/ability glyph states
+        // exercise the same producer interval, including changing bar lengths.
+        // The actual entry hooks choose the group anchor; display X includes
+        // the native-wide origin and anchor*live-margin, as in the renderer.
         struct R{uint8_t op;int x,y,w,h;};
-        const R rects[]={
-            {0x64,16,16,64,55},{0x60,42,40,2,2},     // radar panel, enemy blip
-            {0x64,80,20,84,34},{0x64,76,22,40,16},  // status panel, vehicle icon
-            {0x60,80,40,26,2},{0x60,106,40,6,2},    // health bar: green, red
+        const uint32_t slot=0x80020000,packet=0x80020100,tail=0x80021000;
+        auto emit=[&](int mode,int green,int digits){
+            std::vector<R> rects={
+                {0x64,16,16,64,55},{0x60,42,40,2,2}, // radar and enemy blip
+                {0x64,80,20,84,34},{0x64,76,22,40,16}, // backing and target car
+                {0x60,80,40,green,2},{0x60,80+green,40,32-green,2},
+                {0x64,122,25,12,12},{0x64,154,25,8,12}, // weapon and ability
+            };
+            for(int digit=0;digit<digits;++digit)
+                rects.push_back({0x64,138+8*digit,42,8,12});
+            uint32_t words=0;for(const auto& r:rects)words+=(r.op&4)?4:3;
+            hud_tags.clear();wr(slot,tail&0xFFFFFF);
+            c.gpr[5]=mode;c.gpr[6]=slot;entry(&c,0x80037A00);
+            wr(slot,packet&0xFFFFFF);wr(packet,(words<<24)|(tail&0xFFFFFF));
+            // This previously linked packet is deliberately not part of HUD.
+            wr(tail,0x04FFFFFF);wr(tail+4,0x64000000);wr(tail+8,260);
+            wr(tail+12,0);wr(tail+16,12|(12<<16));
+            uint32_t p=packet+4;std::vector<uint32_t> cmds;
+            for(const auto& r:rects){
+                cmds.push_back(p);wr(p,uint32_t(r.op)<<24);
+                wr(p+4,uint32_t(r.x)|(uint32_t(r.y)<<16));p+=8;
+                if(r.op&4){wr(p,0);p+=4;}
+                wr(p,uint32_t(r.w)|(uint32_t(r.h)<<16));p+=4;
+            }
+            std::vector<uint32_t> original;
+            for(uint32_t a=packet;a<p;a+=4)original.push_back(rd(a));
+            std::array<uint32_t,5> original_tail;
+            for(unsigned i=0;i<original_tail.size();++i)original_tail[i]=rd(tail+4*i);
+            entry(&c,0x8003827C);
+            check(hud_tags.size()==rects.size(),"complete HUD interval tagged without its old OT tail");
+            for(unsigned i=0;i<rects.size();++i)
+                check(hud_tags[i].first==cmds[i]-4,"HUD tags preserve native emission order");
+            for(unsigned i=0;i<original.size();++i)
+                check(rd(packet+4*i)==original[i],"HUD anchoring never edits guest packet words");
+            for(unsigned i=0;i<original_tail.size();++i)
+                check(rd(tail+4*i)==original_tail[i],"existing non-HUD OT tail stays native");
+            check(rd(slot)==(packet&0xFFFFFF),"OT links stay native");
+            check(c.gpr[5]==unsigned(mode) && c.gpr[6]==slot,"HUD call arguments stay native");
+            return rects;
         };
-        const int expected[]={-1,-1,0,0,0,0};
-        uint32_t words=0;for(const auto& r:rects)words+=(r.op&4)?4:3;
-        hud_tags.clear();wr(0x80020000,0xFFFFFF);
-        c.gpr[5]=0;c.gpr[6]=0x80020000;entry(&c,0x80037A00);
-        wr(0x80020000,0x020100);wr(0x80020100,(words<<24)|0xFFFFFF);
-        uint32_t p=0x80020104;std::vector<uint32_t> cmds;
-        for(const auto& r:rects){
-            cmds.push_back(p);wr(p,uint32_t(r.op)<<24);wr(p+4,uint32_t(r.x)|(uint32_t(r.y)<<16));p+=8;
-            if(r.op&4){wr(p,0);p+=4;}
-            wr(p,uint32_t(r.w)|(uint32_t(r.h)<<16));p+=4;
+        const int saved_live_margin=live_margin;
+        for(int mode:{0,1})for(int green:{1,16,31})for(int digits:{1,2,3})for(int m:{0,53,120,267}){
+            live_margin=m;
+            entry(&c,0x8001C134);
+            const auto rects=emit(mode,green,digits);
+            const int radar=rects[0].x+m+hud_tags[0].second*m;
+            for(unsigned i=0;i<rects.size();++i){
+                const int x=rects[i].x+m+hud_tags[i].second*m;
+                check(x-radar==rects[i].x-rects[0].x,
+                      "radar, backing, target, both health colours, weapon/ammo/ability keep authored spacing");
+                check(x==rects[i].x,"complete HUD stays at native left offsets at every wide aspect, including 4:3");
+            }
         }
-        entry(&c,0x8003827C);
-        check(hud_tags.size()==std::size(rects),"every status widget packet is tagged");
-        for(unsigned i=0;i<std::size(rects);++i)
-            check(hud_tags[i].first==cmds[i]-4&&hud_tags[i].second==expected[i],
-                  "status widget contents move with their panel; radar keeps the left edge");
+        live_margin=saved_live_margin;
+        // Horizontal-split/other layouts and a netplay full-width camera keep
+        // their existing container policy; only the offline 0/1 group changes.
+        for(int mode:{2,3}){
+            emit(mode,16,2);
+            check(hud_tags[0].second==-1 && hud_tags[2].second==0,
+                  "other native HUD layouts retain their existing anchors");
+        }
+        netplay_active=1;
+        for(int mode:{0,1}){
+            emit(mode,16,2);
+            check(hud_tags[0].second==-1 && hud_tags[2].second==0,
+                  "offline group override does not change netplay cameras");
+        }
+        netplay_active=0;
+        for(int i=0;i<13;++i)vblank();
+        emit(0,16,2);
+        check(hud_tags[2].second==0,"expired world scene cannot force a menu HUD left");
+        entry(&c,0x8001C134);
+        // The existing display and instruction guards still fail closed.
+        auto rejected_interval=[&](uint32_t next_slot){
+            hud_tags.clear();wr(slot,tail&0xFFFFFF);c.gpr[5]=0;c.gpr[6]=slot;
+            entry(&c,0x80037A00);
+            wr(slot,packet&0xFFFFFF); // Valid emitted HUD makes every guard check nonvacuous.
+            c.gpr[6]=next_slot;entry(&c,0x8003827C);
+        };
+        display_width=640;rejected_interval(slot);
+        check(hud_tags.empty(),"full-screen high-resolution menus are not retagged");display_width=320;
+        const auto producer_word=rd(0x80037A00);
+        wr(0x80037A00,0);rejected_interval(slot);
+        check(hud_tags.empty(),"unexpected HUD producer instruction is not trusted");wr(0x80037A00,producer_word);
+        rejected_interval(slot+4);
+        check(hud_tags.empty(),"a different next OT slot cannot consume the saved HUD interval");
+        c.gpr[6]=slot;
     }
     // Every cell belongs to exactly one bounded native batch. Adjacent batches
     // share their edge vertices, with no transparent-water overlap or holes.
