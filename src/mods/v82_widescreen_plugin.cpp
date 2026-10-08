@@ -44,10 +44,11 @@ void finish_water_base(uint32_t end){
     }
     psx_mod_counter_add("v82.ws.water_base_packets",(end-start)/28);
 }
-// Counters observe the native walker and plane test without changing results.
+// Observe native terrain traversal. Whole-object visibility also repairs the
+// signed-halfword input wrap when a world object exceeds the retail frustum.
 int64_t object_planes[3]={};
 int32_t object_radius=0;
-bool object_sample=false;
+bool object_sample=false,object_input_wide=false;
 bool outside_s32(int64_t v){return v<INT32_MIN || v>INT32_MAX;}
 void compare_terrain_product(CPUState* c){
     const int64_t product=int64_t(int32_t(c->gpr[3]))*int32_t(c->gpr[2]);
@@ -343,6 +344,16 @@ void instruction(CPUState* c,uint32_t pc){
             const bool precise=object_planes[0]<object_radius && object_planes[1]<object_radius && object_planes[2]<object_radius;
             psx_mod_counter_add(native?"v82.ws.object_visible":"v82.ws.object_rejected",1);
             if(native!=precise)psx_mod_counter_add("v82.ws.object_plane_disagree",1);
+            // MVMVA reads IR1..3 as signed 16-bit values. A wide view exposes
+            // camera-relative inputs beyond that range; truncation can make
+            // an object disappear or admit one behind a rejecting plane.
+            // All three native tests use strict plane < radius. The return's
+            // delay slot copies V1 to V0, so preserve the GTE and repair only
+            // that Boolean caller result, only for an actual wrapped world input.
+            if(world() && object_input_wide && native!=precise){
+                c->gpr[3]=precise?1:0;
+                psx_mod_counter_add("v82.ws.object_plane_corrected",1);
+            }
             if(!native){
                 const int r=object_radius;
                 psx_mod_counter_add(int32_t(c->gte_data[9])>=r?"v82.ws.object_reject_plane0":
@@ -405,7 +416,7 @@ void entry(CPUState* c,uint32_t pc){
     if(!m || !battle_view())return;
     if(pc==0x80016664){if(world())render_water_grids(c);return;}
     if(pc==0x8002E22C){
-        const auto p=c->gpr[4];object_sample=false;
+        const auto p=c->gpr[4];object_sample=false;object_input_wide=false;
         if(!ram(p) || (p&0x1FFFFFFF)>0x7FFFF4)return;
         const int64_t v[]={
             (int64_t(int32_t(rd(p)))-int32_t(rd(GP+0xF3C)))>>8,
@@ -417,7 +428,8 @@ void entry(CPUState* c,uint32_t pc){
             for(unsigned col=0;col<3;++col)sum+=int16_t(psx_mod_read_half(GP+0xFD8+(row*3+col)*2))*v[col];
             object_planes[row]=sum>>12;
         }
-        if(v[0]<-32768 || v[0]>32767 || v[1]<-32768 || v[1]>32767 || v[2]<-32768 || v[2]>32767)
+        object_input_wide=v[0]<-32768 || v[0]>32767 || v[1]<-32768 || v[1]>32767 || v[2]<-32768 || v[2]>32767;
+        if(object_input_wide)
             psx_mod_counter_add("v82.ws.object_input_wrap",1);
         object_sample=true;
     }else if(pc==0x8001C134){

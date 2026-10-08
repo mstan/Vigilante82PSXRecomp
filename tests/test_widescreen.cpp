@@ -24,6 +24,23 @@ int main(){
     // These cover large near faces, and the smaller triangles they subdivide
     // into; all three vertices can be outside 4:3 while visible in the reveal.
     entry(&c,0x8001C134);
+    // The retail MVMVA input wraps camera-relative 40000 to -25536.
+    // A wrapped far object must obey the full plane test. The JR delay slot
+    // copies the corrected V1 Boolean into V0; the GTE state stays native.
+    const uint32_t obj=0x80030000;
+    wr(obj,40000u*256u);wr(obj+4,0);wr(obj+8,0);
+    wr(GP+0xF3C,0);wr(GP+0xF40,0);wr(GP+0xF44,0);
+    for(unsigned i=0;i<5;++i)wr(GP+0xFD8+i*4,0);
+    wr(GP+0xFD8,4096);wr(GP+0xFD8+8,4096);wr(GP+0xFD8+16,4096);
+    c.gpr[4]=obj;c.gpr[5]=256;c.gpr[3]=1;
+    entry(&c,0x8002E22C);instruction(&c,0x8002E2E0);
+    check(c.gpr[3]==0,"wrapped far object obeys full rejecting plane");
+    wr(obj,uint32_t(-40000*256));c.gpr[3]=0;
+    entry(&c,0x8002E22C);instruction(&c,0x8002E2E0);
+    check(c.gpr[3]==1,"wrapped visible object remains admitted");
+    wr(obj,10*256);c.gpr[3]=123;
+    entry(&c,0x8002E22C);instruction(&c,0x8002E2E0);
+    check(c.gpr[3]==123,"representable native object result is preserved");
     for(int m:{53,120,267}){
         cull_margin=m;
         for(auto right:subdivision_right_sites){

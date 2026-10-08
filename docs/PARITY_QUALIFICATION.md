@@ -97,10 +97,10 @@ the corrected config before any reuse, even if its native binaries are retained.
 
 | Feature | Actual title implementation and remaining gate |
 | --- | --- |
-| Native phases | 1P span `800143FC..80014734`, capture at `80014D94` with ra `800146B4`, camera `8002E0E8`; object matrices/particles and camera are interpolated and guest draw code replays transactionally. Split spans `80013E90..80014154` / `800141FC..80014358` reuse the opposite HUD section and wait for native DrawSync. Require current-framework correctness counters and motion/audio/input checks. |
+| Interpolation | Archived under `development/retired-interpolation`; absent from the serial build and launcher catalog. |
 | Adaptive world visibility | `8001C134` establishes gameplay and expands packet arena; terrain row traversal `8001BE68`, view corner/ray corrections `8001C250/8001C304`, object planes `8002E22C` and screen bounds `8002E024`. Subdivision screen walkers widen eight paired bounds `80024E6C..80027668`. Verify live 4:3, 16:9, 21:9, 32:9 and resizing without edge clipping or activation holes. |
 | Water / backgrounds / HUD | Native base water `80015FB0..8001665C`, tiled surface `80016664` and grid splitting before the 32x32 limit; sky packets from `8001C910`, HUD chains `80037A00..8003827C`. Preserve water reserve and packet budgets. Moving sky width jitter remains owner issue `beads-eio.12.19`; corrected shared tag rollback needs owner motion review. |
-| Distance / subdivision / fog | `800288E0` consumes cell X/Z and packet cursor a0/a1/a2, returns cursor v0, may emit many native packets and touches scratchpad/GTE. The title still runs its subdivision. Row padding and wide cull bounds do not establish extended far distance. `gp+DB4` feeds the far terrain ray, but this is not an identified fog/activation boundary. Further caller/consumer analysis belongs to `beads-eio.12.20`; no generic 3x patch, subdivision bypass or native family is claimed. |
+| Distance / subdivision / fog | The actual native range is 80 units for ordinary arenas and 48 for late arenas, written at `8001C190/8001C1A8`. `gp+DB4` feeds the terrain rays and far fog endpoint; `gp+DB6/DB8` also supply subdivision bands. Native subdivision and four-corner row traversal remain intact. The widened arena check had no packet-budget failures. Whole-object visibility at `8002E22C..8002E2E0` now repairs actual signed-halfword input wrap using the three full-coordinate planes, preserving the GTE and the Boolean return ABI. It fixes a demonstrated visibility disagreement without increasing the far range. Residual terrain seams and a further distance extension remain tracked under `beads-eio.12.20`. |
 | Residency and transitions | Stock files use the existing native stream service; unknown/modified/virtual content stays with its existing guest/content adapters. Cold launch pack/hash/predecode cost, warm arena change, menus, revisits, SPU completion and all audio still need measured coverage. |
 | Existing multiplayer | Preserve local split, LAN/Direct IP and existing unsplit netplay paths. Qualify both peers with identical profile/plan and each local camera/HUD. This campaign adds no new multiplayer mode. |
 
@@ -109,74 +109,33 @@ samples and substantial guest redraw cost. They do not attribute the owner's
 individual hitches or establish a campaign speedup. Do not resume parked shared
 DMA/guest-cycle/CD-clock experiments for this source task.
 
-## Pending commands and promotion gates
+## Serial validation and review
 
-All build, game, disc, cache regeneration and archive commands below require a
-coordinator resource token. They are listed for the next phase and have not run.
+The ENHANCED PGXP runtime builds with two compiler jobs. The canonical emitter
+regenerated native main and both BIOS profiles. Developer and player configs
+have overlay config hash `07053ec0`; emitter hash is `d1867bb4`. Running the
+capture compiler against those identities reported no failures; the one
+observed delay-slot/data region has no executable roots and is deliberately
+left on the interpreter fallback. No cache identity was relabeled.
 
-1. Configure separate ENHANCED and REFERENCE release directories with the pinned
-   framework, shared UI and owned generated source. Retain the PGXP runtime
-   flavor. Re-audit current main generation against codegen `18d1867bb4` and
-   game.toml's instruction/entry sites before copying or generating any input.
-   Compile with two jobs only after a compiler slot is assigned.
-2. Run `ctest --test-dir <build> -R v82-resident --output-on-failure` and all title
-   checks. The catalog test requires `V82_DISC=<owned sequel.cue>` and uses
-   `V82_FRAMEWORK=<pinned framework>`. Exercise both execution profiles; capture
-   real-loader destinations, returned values, continuation, VRAM and SPU results
-   and completion ordering at the named caller boundaries.
-3. Stage isolated saves/media bindings with `tools/stage_playtest.py <build>
-   --config <private playtest.local.toml>`. Its current all-feature route also
-   requires optional original/N64 media; for primary-disc qualification use an
-   isolated primary-disc setup and leave optional packages disabled. Do not
-   modify the owner's cards/settings or reuse another person's debug port.
-4. Navigate to a known arena, then issue a **fresh Cross press after loading**.
-   Native main `800132CC` waits at `800139E4` for controller bit `00400000` in
-   RAM `8006B508`; neutral input alone does not enter gameplay. Record the
-   primary-disc matrix across camera movement, weapons/effects, water, sky,
-   pause/HUD, split/unsplit play, scene cuts, arena changes and revisits.
-5. In a debug correctness build launched with `PSX_RENDER_PASS_VERIFY=1`, run
-   `python <framework>/tools/qualify_render_passes.py --port <isolated-port>
-   --case <actual-arena-path> --executable <exact-runtime> --purpose correctness
-   --output <private-receipt.json>`. Replay and verification must be nonzero and
-   error-free. Relaunch without verification for `--purpose performance`.
-   Compare matched camera/workload samples across the two profiles; do not sum
-   overlapping presenter/guest/GPU timing or treat interpolated swaps as ticks.
-6. Observe each controlled load window using
-   `python <framework>/tools/load_probe.py --port <isolated-port> run --secs 30
-   --out <private-load.json>`. Record cold/warm host seconds, guest frames,
-   resident events, timing pauses and audio rather than merely increasing CD
-   speed. Preserve timing/results that callers require, omit internal waits
-   where the established native service already owns completion.
-7. Audit native overlay DLL/range pairs and codegen/config/flavor tags before
-   reuse. No AOT has been copied, changed or regenerated in this source phase.
-   Prepare platform-native emitters/cache independently for Linux.
-8. `tools/package_release.py --build-dir <qualified-build> --stage <empty-stage>
-   --recompiler-build <native-emitter-build> --cache-dir <audited-cache>
-   --download-cache <tool-cache> --platform win --mingw-bin <native-bin>
-   --zip <candidate.zip> --framework <pinned-framework>` binds execution to
-   final Windows bytes immediately before the shared ZIP writer. For Linux,
-   `PSXRECOMP_ROOT=<framework> bash tools/package_appimage.sh <linux-build>
-   <linux-emitter-build> <output>` stages a native ELF payload and rebinds the
-   execution receipt after linuxdeploy before making the AppImage. Both retain
-   licenses/importer/toolchain and exclude retail media/personal state. Verify
-   candidate hashes and launch on each platform; helper source changes alone
-   do not establish a valid package.
-9. Final owner playtest must accept motion, background width, image quality,
-   gameplay/audio, load speed and existing multiplayer. Keep campaign and
-   follow-up Beads open until those gates pass. No public push, merge or release
-   is authorized by this source phase.
+A private fresh OpenBIOS startup reached the first arena with internal scale
+5x (1080p target), active resident whole-file/stream/SPU paths and interpolation
+disabled. Its baseline 278 world frames recorded 429 wrapped object inputs and
+270 plane disagreements, which motivated the guarded return correction. The
+focused widescreen fixture checks both wrapped visibility outcomes and preserves
+representable native results. This short hidden run has audio and physical
+controllers disabled; it does not certify music or complete arena coverage. The actual
+executable and execution manifest are bound in the coordinator's review receipt.
 
-## Source-phase validation receipt
+Final owner check: start an arena, move and turn through terrain edges, check
+sky/water/HUD, listen to music, then pause and reload/revisit. Terrain seams,
+far visibility and existing multiplayer remain review items. Keep the owning
+Beads issues open until accepted. No release is published by this preparation.
 
-The developer/player configuration comparison passes after correcting the
-pre-existing entry-hook and netplay drift. Python source syntax, all bundled
-manifest TOML, enhanced defaults, display-refresh/Fit choices, HOLD-only native
-presentation and recorded media/code digests were checked without reading media.
-Bash syntax for Linux build/AppImage scripts and PowerShell packaging syntax
-pass. Git whitespace checks pass. These checks establish source consistency;
-they do not establish that either profile compiles or that packaging succeeds.
+## Reference implementation
 
-No C++ compiler, CMake configure, game process, disc hash, media copying, AOT
-generation or archive creation ran in this worker phase. The new VRAM-failure
-contract fixture, both runtime profiles, actual callers, gameplay, loading,
-Windows ZIP, native Linux AppImage and owner acceptance remain pending.
+Use a separate build directory with `-DPSX_EXECUTION_PROFILE=REFERENCE` to
+select the resident reference binding and execute the original generated guest
+loader. The normal ENHANCED build selects the native adapter. The source-owned
+resident contract fixture and catalog verifier remain available for targeted
+investigations; broad profile matrices are deferred by the owner for this pass.
