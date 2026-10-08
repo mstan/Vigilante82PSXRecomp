@@ -132,6 +132,17 @@ sky/water/HUD, listen to music, then pause and reload/revisit. Terrain seams,
 far visibility and existing multiplayer remain review items. Keep the owning
 Beads issues open until accepted. No release is published by this preparation.
 
+The owner limited the subsequent terrain-seam investigation to two approaches.
+Neither produced a qualified fix in a short fresh OpenBIOS arena comparison:
+enabling the PGXP position-cache fallback left visible gaps and supplied no
+fallback vertices in the sampled triangle records; enabling shared native-wide
+projection recovery also left the gaps, including after a short camera turn.
+The latter recorded two recovered vertices and three oversized triangles, but
+did not repair the observed seams. Neither experimental setting was enabled in
+the product. The residual issue remains open as `beads-eio.12.20`; further
+terrain-seam work is deferred while the serial campaign proceeds to original
+Vigilante 8. The earlier whole-object visibility repair remains in the candidate.
+
 ## Reference implementation
 
 Use a separate build directory with `-DPSX_EXECUTION_PROFILE=REFERENCE` to
