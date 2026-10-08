@@ -46,6 +46,7 @@ require_cue = true
 required_tracks = 17
 
 [video]
+frame_interpolation = false
 renderer = "opengl"
 offer_frame_interpolation = false
 texture_filtering = "nearest"
