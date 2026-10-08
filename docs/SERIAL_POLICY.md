@@ -6,5 +6,6 @@ on archive/vigilante82-interpolation-before-serial-20261008T064600Z.
 It is unavailable in the current build. Original loader/render hooks remain.
 Generic CD/host pacing remains absent. Existing upscaling, view/precision and
 resident loading are retained where implemented; final review belongs to owner.
-Shared framework pin: e740b81c3cf92314642383f25792b7180811fe23. No release is published by this preparation.
+Shared framework pin: de771e3e75c8f62d73295e6c7d7ceb833949e5b4; title rebased
+onto public main 0b4e2957, launcher UI 1a8ae64b. No release is published by this preparation.
 Older native interpolation evidence is historical, not current acceptance.

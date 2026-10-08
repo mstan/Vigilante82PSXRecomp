@@ -1,28 +1,29 @@
 # Vigilante 8: 2nd Offense parity candidate
 
-This is a source preparation receipt for the owner-authorized campaign, not
-current-build visual, performance or release acceptance. Central issue:
+This is the serial review record for the owner-authorized campaign. Final
+gameplay and performance acceptance belongs to the owner. Central issue:
 `beads-eio.12.21`. Candidate branch: `campaign/v82-parity-hle-20261006`.
 
 ## Preserved baseline and identities
 
-The source base is main `e1133d10`, which descends from release `d39db526` and
-retains its ultrawide water, local multiplayer HUD and high-frame-rate HUD fixes.
-It also retains the newer native replay, PGXP hook build, stable world filtering
-and resident loader/load-floor work. The owner's release checkout, generated
-bodies, media, caches and saves are separate inputs and were not modified.
+The review branch was rebased onto public main `0b4e2957` on 2026-10-08. It
+retains current verified-media startup, worker-based media preparation, launcher
+box art and the complete left-anchored single-player HUD, together with the
+title's resident loading and PGXP build. Imported content stays disabled.
 
-The candidate pins shared framework `e5e2dca85c2e7c1758c6de27870599103a1f8bfc`
-(codegen `18d1867bb4`). This includes the corrected native HOLD presentation,
-render-pass background-tag rollback, per-primitive filter batching and native
-identity hashing. These shared changes require title requalification together.
+The framework pin `de771e3e75c8f62d73295e6c7d7ceb833949e5b4` combines public
+`d3b22491` with the parity framework `e740b81c`. This keeps the current public
+startup and HD texture support and the build-selected resident implementation.
+The merged renderer assigns its per-primitive filter attribute separately from
+HD texture attributes. Focused real-GL checks passed: native filtering (509),
+HD replacements (56), windowed HD replacements (57), and native baseline (19).
+BIOS sources and stamps were regenerated with that framework's actual emitter.
 
-The resumed first-review build uses common UI03d58aa0 and the framework's exact
-recomp-net dependency e2491d2, retaining two-player/netplay support. Local legal
-media is read from `_wt-pr544-v82/media`; no owner files are changed. Build
-ENHANCED and its native cache, then let the owner check an arena, camera motion,
-sky/water/HUD at wide aspect, pause, reload/revisit, and existing multiplayer.
-Broad automated matrices are deferred per the owner's latest instruction.
+The launcher uses public UI `1a8ae64b`, OpenBIOS, internal resolution 1080p,
+Fit widescreen, texture correction and Resident Loading. Interpolation is
+archived and unavailable. Generic CD-speed and host-pacing packages are omitted.
+The owner should check an arena, camera motion, terrain/sky/water/HUD at wide
+aspect, music, pause and reload/revisit. Broad automated matrices are deferred.
 
 Primary media is the complete 17-track USA sequel, SLUS-00868. Existing import
 contracts declare 301,703,168 decoded data bytes, data digest
