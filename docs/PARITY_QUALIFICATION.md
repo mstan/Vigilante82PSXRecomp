@@ -11,13 +11,17 @@ retains current verified-media startup, worker-based media preparation, launcher
 box art and the complete left-anchored single-player HUD, together with the
 title's resident loading and PGXP build. Imported content stays disabled.
 
-The framework pin `de771e3e75c8f62d73295e6c7d7ceb833949e5b4` combines public
+The renderer integration `de771e3e75c8f62d73295e6c7d7ceb833949e5b4` combines public
 `d3b22491` with the parity framework `e740b81c`. This keeps the current public
 startup and HD texture support and the build-selected resident implementation.
 The merged renderer assigns its per-primitive filter attribute separately from
 HD texture attributes. Focused real-GL checks passed: native filtering (509),
 HD replacements (56), windowed HD replacements (57), and native baseline (19).
 BIOS sources and stamps were regenerated with that framework's actual emitter.
+The current source pin `c8f042f68382e963d817e53d3944ccd3dd557aac` adds the shared
+verified launcher-artwork helper. Original V8 and V82 now use that helper, with
+their own immutable image URL, digest and offline override. Both configurations
+and runtime builds succeed; this extraction changes no rendering behavior.
 
 The launcher uses public UI `1a8ae64b`, OpenBIOS, internal resolution 1080p,
 Fit widescreen, texture correction and Resident Loading. Interpolation is
