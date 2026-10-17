@@ -1,3 +1,31 @@
+# v0.1.3 - playtest diagnostics
+
+Adds default-on **Playtest Diagnostics** (`v82.diagnostics`): offline sessions
+record both pads, their connected state and a rotating RAM digest at every
+guest VBlank into `saves/diagnostics/session-<stamp>/`, with the starting
+memory cards, settings and mod choices. Zip the newest session folder when
+reporting a bug (never the disc or BIOS). `tools/replay_v82_diagnostics.py`
+replays a session headless against the same build and stops at the first
+divergence. Netplay is never recorded. Disable it in Mods.
+
+Rebuilt on psxrecomp `7cddab82` and recomp-ui `0546fbcb` (from `d3b22491` and
+`1a8ae64b`). Gameplay, content packages and netplay compatibility are
+otherwise unchanged; both netplay peers must use v0.1.3. Start a fresh game
+after updating.
+
+## Validation
+
+Windows and Linux production builds pass all 28 registered checks (two
+fixture-gated checks skip without owner media). A headless recording of
+6,659 VBlanks, including real Meteor Crater driving, weapon and P2 hot-plug
+input, replays against the same build with zero divergence; both packaged
+downloads boot with bundled OpenBIOS, record a session and (Windows) replay
+it. Recording costs about 30 us per VBlank on the game thread (max 0.4 ms).
+Not validated: a real two-peer netplay session, human-played recordings,
+Linux replay, and gameplay on the new framework beyond the headless runs.
+The native overlay cache now ships 1,322 per-fragment shards per platform
+(12 fragments in one overlay region fall back to the interpreter).
+
 # v0.1.2 - ultrawide water fix
 
 Water now extends across the selected widescreen view instead of stopping at

@@ -1,8 +1,8 @@
-Vigilante82PSXRecomp v0.1.2 - private playtest update
+Vigilante82PSXRecomp v0.1.3 - private playtest update
 
 Windows: extract the entire ZIP, then run Vigilante82PSXRecomp.exe.
 Linux: chmod +x the AppImage, then run it. If FUSE is unavailable, use
-./Vigilante82PSXRecomp-v0.1.2-linux-x64.AppImage --appimage-extract-and-run
+./Vigilante82PSXRecomp-v0.1.3-linux-x64.AppImage --appimage-extract-and-run
 Linux requires glibc 2.39 or newer (Ubuntu 24.04 or a comparable newer system).
 
 1. The launcher selects bundled OpenBIOS automatically. An owner-supplied
@@ -19,8 +19,12 @@ Linux requires glibc 2.39 or newer (Ubuntu 24.04 or a comparable newer system).
 Both peers need this same release and matching content/mod choices.
 Native-wide and High Frame Rate are optional Mods. Multiplayer locks the
 chosen 16:9/21:9 view; other offline view choices use fixed 16:9 online.
-High Frame Rate remains experimental. v0.1.2 fixes water disappearing at
-ultrawide screen edges. The multiplayer HUD fixes from v0.1.1 are included.
+High Frame Rate remains experimental. v0.1.3 adds Playtest Diagnostics
+(default on, offline play only; turn off in Mods). It records your inputs to
+saves/diagnostics beside the game. If you hit a bug, quit normally and zip the
+newest session folder there (diagnostics-location.txt names it) and send it.
+It contains your starting memory cards but never the disc or BIOS. The v0.1.2
+ultrawide water fix and the v0.1.1 multiplayer HUD fixes are included.
 
 Settings, saves and converted content are writable user data. Linux stores
 them under ~/.local/share/Vigilante82PSXRecomp by default; Windows uses the

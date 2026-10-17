@@ -43,7 +43,7 @@ disc persistence and render-replay admission fixes; Resident Loading is the
 loading option. Settings and memory cards were preserved.
 
 Acceptance was recorded before integration. The main-branch dependency pins
-are public framework `d3b22491` and recomp-ui `1a8ae64b`, preserving their newer
+were public framework `d3b22491` and recomp-ui `1a8ae64b` (bumped for v0.1.3 to `7cddab82` and `0546fbcb`), preserving their newer
 upstream changes as well as the accepted fixes. A clean title checkout at
 `252889e0` built against those pinned submodules with strict BIOS stamp checks
 and passed all 25 registered checks; the same optional Dreamland subcase was

@@ -35,6 +35,24 @@ psxrecomp_add_runtime_target(psx-runtime
     PRELOADED_MODS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mods/preloaded"
     EXTRAS_SOURCES ${TITLE_PLUGINS})
 set_target_properties(psx-runtime PROPERTIES OUTPUT_NAME "Vigilante82PSXRecomp")
+
+# Playtest diagnostics (default-on mod package v82.diagnostics; source is
+# globbed into TITLE_PLUGINS). The build identity is part of every recording
+# header, so a replay refuses a different build instead of reporting a false
+# divergence.
+set(V82_SOURCE_REV "nogit" CACHE STRING "Source revision stamped into the diagnostic build id (auto-detected from git when empty/nogit)")
+find_package(Git QUIET)
+if(GIT_FOUND AND V82_SOURCE_REV STREQUAL "nogit")
+    execute_process(COMMAND "${GIT_EXECUTABLE}" rev-parse --short=12 HEAD
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        OUTPUT_VARIABLE _V82_REV OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET RESULT_VARIABLE _V82_REV_RESULT)
+    if(_V82_REV_RESULT EQUAL 0 AND _V82_REV)
+        set(V82_SOURCE_REV "${_V82_REV}")
+    endif()
+endif()
+set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/v82_diagnostics.cpp" APPEND PROPERTY
+    COMPILE_DEFINITIONS "V82_DIAGNOSTIC_BUILD_ID=\"${V82_RELEASE_VERSION}+${V82_SOURCE_REV}\"")
 if(BUILD_TESTING)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     foreach(enhancement widescreen music unsplit)
@@ -55,6 +73,20 @@ if(BUILD_TESTING)
         "${PSXRECOMP_ROOT}/recompiler/lib/toml11")
     target_link_libraries(v82-media-receipt-test PRIVATE chdr-static)
     add_test(NAME v82-media-receipt COMMAND v82-media-receipt-test)
+    # Host-only diagnostics tests (no disc, BIOS or window).
+    find_package(Threads REQUIRED)
+    add_executable(v82-diagnostic-writer-test tests/test_v82_diagnostic_writer.cpp)
+    add_executable(v82-diagnostics-test tests/test_v82_diagnostics.cpp)
+    foreach(_T v82-diagnostic-writer-test v82-diagnostics-test)
+        target_include_directories(${_T} PRIVATE src/mods "${PSXRECOMP_ROOT}/runtime/include")
+        target_link_libraries(${_T} PRIVATE Threads::Threads)
+    endforeach()
+    add_test(NAME v82-diagnostic-writer COMMAND v82-diagnostic-writer-test
+        "${CMAKE_CURRENT_BINARY_DIR}/diagnostic-writer-qa")
+    set_tests_properties(v82-diagnostic-writer PROPERTIES TIMEOUT 15)
+    add_test(NAME v82-diagnostics COMMAND v82-diagnostics-test "${CMAKE_CURRENT_BINARY_DIR}/diagnostics-qa")
+    add_test(NAME v82-diagnostic-replay-prepare
+        COMMAND "${Python3_EXECUTABLE}" -I "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_replay_v82_diagnostics.py")
     add_test(NAME v82-animation-timing COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_animation_timing.py")
     add_executable(v82-lightning-test tests/test_lightning.cpp src/mods/v82_vehicle_package.cpp)
     target_include_directories(v82-lightning-test PRIVATE src/mods "${PSXRECOMP_ROOT}/runtime/include")
