@@ -1,3 +1,18 @@
+# v0.1.3 - playtest diagnostics
+
+Adds default-on **Playtest Diagnostics** (`v82.diagnostics`): offline sessions
+record both pads, their connected state and a rotating RAM digest at every
+guest VBlank into `saves/diagnostics/session-<stamp>/`, with the starting
+memory cards, settings and mod choices. Zip the newest session folder when
+reporting a bug (never the disc or BIOS). `tools/replay_v82_diagnostics.py`
+replays a session headless against the same build and stops at the first
+divergence. Netplay is never recorded. Disable it in Mods.
+
+Rebuilt on psxrecomp `7cddab82` and recomp-ui `0546fbcb` (from `d3b22491` and
+`1a8ae64b`). Gameplay, content packages and netplay compatibility are
+otherwise unchanged; both netplay peers must use v0.1.3. Start a fresh game
+after updating.
+
 # v0.1.2 - ultrawide water fix
 
 Water now extends across the selected widescreen view instead of stopping at

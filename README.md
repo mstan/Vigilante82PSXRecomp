@@ -1,11 +1,25 @@
 # Vigilante82PSXRecomp
 
-Private **v0.1.2** playtest downloads are available on the
-[releases page](https://github.com/mstan/Vigilante82PSXRecomp/releases/tag/v0.1.2).
+Private playtest downloads are published on the
+[releases page](https://github.com/mstan/Vigilante82PSXRecomp/releases).
 See [START_HERE](packaging/release/START_HERE.txt) for setup and
-[release notes](RELEASE_NOTES.md) for known issues. v0.1.2 fixes water disappearing at ultrawide screen edges
-and includes the multiplayer HUD fixes from v0.1.1. See
-[playtest validation](docs/PLAYTEST.md) for the follow-up.
+[release notes](RELEASE_NOTES.md) for known issues. v0.1.3 adds default-on
+**Playtest Diagnostics** (input recording and verified replay, see below) on
+the current psxrecomp framework; v0.1.2 fixed water disappearing at ultrawide
+screen edges. See [playtest validation](docs/PLAYTEST.md) for the follow-up.
+
+## Playtest diagnostics
+
+The default-on `v82.diagnostics` package records, for each offline guest
+VBlank, both pads (buttons, sticks, connected state) and a cheap RAM digest to
+`saves/diagnostics/session-<stamp>/` beside the game, with the starting memory
+cards, settings and mod choices. `diagnostics-location.txt` beside the game
+names the current session folder. After reproducing a bug, quit normally and
+**zip the whole newest session folder** (it contains starting saves; never
+include the disc or BIOS). Netplay sessions are not recorded. Turn it off in
+Mods. Developers replay a session with
+`tools/replay_v82_diagnostics.py <session> --exe <original build> --disc <cue>
+--output <new dir>`; replay stops at the first divergence with a message.
 
 One combined Vigilante 8 game under **psxrecomp**, using USA 2nd Offense
 (`SLUS-00868`) as its gameplay base and directly adapting the authorized
