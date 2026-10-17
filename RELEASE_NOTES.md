@@ -13,6 +13,19 @@ Rebuilt on psxrecomp `7cddab82` and recomp-ui `0546fbcb` (from `d3b22491` and
 otherwise unchanged; both netplay peers must use v0.1.3. Start a fresh game
 after updating.
 
+## Validation
+
+Windows and Linux production builds pass all 28 registered checks (two
+fixture-gated checks skip without owner media). A headless recording of
+6,659 VBlanks, including real Meteor Crater driving, weapon and P2 hot-plug
+input, replays against the same build with zero divergence; both packaged
+downloads boot with bundled OpenBIOS, record a session and (Windows) replay
+it. Recording costs about 30 us per VBlank on the game thread (max 0.4 ms).
+Not validated: a real two-peer netplay session, human-played recordings,
+Linux replay, and gameplay on the new framework beyond the headless runs.
+The native overlay cache now ships 1,322 per-fragment shards per platform
+(12 fragments in one overlay region fall back to the interpreter).
+
 # v0.1.2 - ultrawide water fix
 
 Water now extends across the selected widescreen view instead of stopping at
