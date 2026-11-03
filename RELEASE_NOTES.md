@@ -8,6 +8,10 @@ prepared before the launcher and reused on Play after checking the actual
 catalog and selection contents. It no longer hashes the entire disc solely for
 an unused offline fingerprint.
 
+Default diagnostic recording uses the committed offline plan without requesting
+a netplay content hash on its first frame. Replay still requires the same build,
+execution profile and mod plan.
+
 Netplay and source-dependent conversions retain their content verification.
 Existing 4x resolution, adaptive Fit to Window, gameplay fixes and saved mod
 choices remain included. CD Speed and Fast Loading remain excluded.

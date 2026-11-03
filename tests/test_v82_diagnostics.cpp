@@ -69,8 +69,11 @@ int savestate_read_slot(int,uint8_t **data,size_t *size) {
     *size=slot_image.size();return 1;
 }
 namespace PSXRecompV4 {
-std::string mod_runtime_plan_fingerprint_portable() {return plan_text;}
-const std::string& mod_runtime_fingerprint() {static const std::string fp="fixture-plan";return fp;}
+std::string mod_runtime_plan_fingerprint_portable() {
+    fputs("diagnostics must not prepare or hash portable content identity\n", stderr);
+    std::abort();
+}
+const std::string& mod_runtime_fingerprint() {return plan_text;}
 const std::filesystem::path& mod_runtime_root() {
     static std::filesystem::path root;
     root=std::filesystem::path(application_root)/"mods";return root;
@@ -225,6 +228,18 @@ int main(int argc,char **argv) {
     plan_text="different-plan";reset_machine();activation();
     CHECK(replay_failed && !sources[0]);
     plan_text="fixture-plan";
+    for (const char* header : {"# execution ", "# build "}) {
+        auto changed = text;
+        const auto start = changed.find(header);
+        CHECK(start != std::string::npos);
+        changed.insert(changed.find('\n', start), "-different");
+        const auto bad_header = std::filesystem::path(save_root)/"different-header.csv";
+        {std::ofstream out(bad_header, std::ios::binary);out << changed;}
+        env("V82_DIAGNOSTIC_REPLAY", bad_header.string().c_str());
+        reset_machine();activation();
+        CHECK(replay_failed && !replaying && !sources[0] && !sources[1]);
+    }
+    env("V82_DIAGNOSTIC_REPLAY", (session/"inputs.csv").string().c_str());
     online=true;reset_machine();activation();CHECK(replay_failed);online=false;
     {   // A hard-killed recording leaves a torn final row: replay verifies the rest.
         auto torn=std::filesystem::path(save_root)/"torn.csv";

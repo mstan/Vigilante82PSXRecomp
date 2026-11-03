@@ -99,8 +99,10 @@ void close_recording() {
 }
 
 std::string plan_identity() {
-    auto portable = PSXRecompV4::mod_runtime_plan_fingerprint_portable();
-    return portable.empty() ? PSXRecompV4::mod_runtime_fingerprint() : portable;
+    // Record the already committed offline plan. The replay header also binds
+    // this build and execution profile; requesting a portable/netplay identity
+    // here would synchronously hash the disc at the first recorded VBlank.
+    return PSXRecompV4::mod_runtime_fingerprint();
 }
 
 uint32_t state_digest(uint32_t seq) {
