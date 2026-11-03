@@ -1,5 +1,64 @@
 # Combined Arcade playtest
 
+## v0.1.5 default offline launch correction (2026-11-03)
+
+Validated title code is `03fd5e7a`, framework
+`060ef0ab34a27ab9c35ad92f52f573e8cea22086`, with the v0.1.4 UI, networking and
+renderer dependencies retained. The shipping Windows executable SHA-256 is
+`6d76a3379db6b55cb233087d38d7d0d4a2beef1f8c9fca09c5caacab790c1bd3`.
+Native Clang 22.1.8 Release, strict BIOS stamps, and all 28 title checks pass.
+The replay fixture now fails on any portable-fingerprint request and verifies
+rejection of changed plans, execution profiles and build IDs.
+
+Fresh extracted payload/profile and subsequent warm-process launcher-to-Play
+runs used the actual NAS sequel CUE, default mods, hidden windows, muted output,
+private cards/states and `C:/Windows/System32;C:/Windows` as PATH. Both report
+`startup.preload_hit=1` and `startup.plan_reuse=1`, zero whole-disc hashes and
+conversion helpers, and no `provider_commit` timing scope. Early, ready and
+Mods framebuffer captures show no preparation modal; 4x and checked Widescreen
+with Fit to Window remain the fresh defaults. Cold means a fresh payload/profile,
+not an emptied OS or NAS file cache.
+
+The cold preload commit took 44.238 ms and the reused runtime commit 20.900 ms;
+the warm values were 58.349 ms and 29.942 ms. Resident Loading still verifies
+its own inputs (213.543/409.303 ms activation). This removes the previously
+measured 28.6-second whole-disc hash from this default offline path. An initial
+candidate also exposed a separate 28.3-second first-VBlank hash from diagnostic
+recording; the title and shared recorders now read the committed plan without
+requesting a portable/netplay identity. Recording remains enabled by default.
+
+Actual retail Arcade selection reached Meteor Crater, acceleration/steering
+moved the vehicle, and current-build save/load completed generations 1/2 with
+`last_ok=1`. Driving continued after restoration; a fresh warm process loaded
+the same new state and continued another 306 VBlanks. Both processes exited 0.
+Gameplay captures show widened terrain/HUD, and `video_info` reports requested,
+effective and high-resolution scale 4 with a 4096x2048 FBO. One mixed menu/gameplay
+sample reports 4,096 presents over 69,366.8 ms (59.05 Hz), p95 18,130 us and p99
+35,003 us on the shared PC; this is a sanity sample, not a matched performance win.
+
+Externally changing saved selection bytes after preload, while restoring the
+file timestamp, rejects Play with the reload diagnostic and preserves the
+external file. A same-size manifest edit with its timestamp restored likewise
+rejects Play with the reload diagnostic. Both launcher-only processes exited 0;
+the disposable copies were restored. Native overlay execution remained active under the
+compiler-free PATH: one sample reports 39 region loads, 638 registered functions,
+54,534,632 native dispatches, and zero stale blocks or candidate overflow. The
+shipping 78 GCC/144 TinyCC cache pairs and bundled compilation fallback remain;
+other arenas/content combinations were not newly requalified.
+
+This correction covers declarative default offline plans. Optional source-backed
+conversions, declared disc constraints and netplay retain full authoritative
+content checks; no new fast-path or runtime qualification is claimed for them.
+Invalidation/source-corruption and portable/netplay identity checks are covered
+by the focused shared fixtures in `G:/V82WarmLaunchFix-20261103/shared-validation.json`,
+`framework-full-tests.log`, `framework-cache-rerun.log` and the diagnostic fixture
+rerun. BIOS stamp CI run `41735498840` passed.
+
+Evidence: `G:/V82WarmLaunchFix-20261103/title-evidence` (shipping logs, controls,
+framebuffer captures, title CTest/LastTest records, lease telemetry and final
+release identity). Source issue: `beads-eio.12.27`, shared `beads-eio.3.435`.
+The live owner payload, settings, saves and desktop focus were preserved.
+
 ## v0.1.4 dependency refresh (2026-11-03)
 
 Validated code is title `e57c6fdae681837eca97f4d1f0ed46aa196a8c5f`, framework

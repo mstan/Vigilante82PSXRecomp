@@ -16,6 +16,20 @@ Netplay and source-dependent conversions retain their content verification.
 Existing 4x resolution, adaptive Fit to Window, gameplay fixes and saved mod
 choices remain included. CD Speed and Fast Loading remain excluded.
 
+## Validation
+
+The Windows production package passes all 28 title checks. Fresh-profile and
+warm-process launches with the actual network disc use zero whole-disc hashes,
+conversion helpers or launcher preparation jobs. Reused runtime commits took
+20.9/29.9 ms. Changed selections and same-size, restored-timestamp manifest edits
+reject the stale plan and preserve externally saved choices.
+
+The fresh launcher shows 4x and enabled Fit to Window; actual Meteor Crater
+driving, current-build save/load and warm restoration pass. Tests used the
+bundled native toolchain with system compilers absent from PATH. Existing cache
+coverage limits remain; optional imports, other arenas, two-peer netplay and
+Linux were not newly qualified by this default offline startup correction.
+
 # v0.1.4 - current engine and 4x defaults
 
 Updates psxrecomp to `d35f13c9`, recomp-ui to `dd47b188`, recomp-net to
