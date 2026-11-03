@@ -87,6 +87,31 @@ int main() {
         std::shared_ptr<const std::vector<uint8_t>> bytes;
         check(load_mod_media(outputs.at("menu"), "file", 4, resource.sha256, bytes, &error), "framework validates output bytes");
         const auto snapshot = bytes;
+        std::string source_identity;
+        if (!host_file_identity(selected, source_identity)) {
+            // The framework deliberately declines persistent Windows identities
+            // until a journal-bound change identity is qualified. Exercise the
+            // supported full-verification path rather than demand a cache hit.
+            check(!registered().probe(context, outputs, error) && outputs.empty(),
+                  "unsupported identity never reuses a receipt");
+            check(prepare_with_worker(context, outputs, error, fake_worker) && worker_calls == 2,
+                  "unsupported identity repeats verified preparation");
+            check(load_mod_media(outputs.at("menu"), "file", 4, resource.sha256, bytes, &error),
+                  "repeated preparation still verifies resource bytes");
+            replace_preserving_time(produced, "evil");
+            check(!registered().probe(context, outputs, error) && outputs.empty(),
+                  "unsupported identity never accepts replaced output");
+            check(!load_mod_media(produced, "file", 4, resource.sha256, bytes, &error),
+                  "full verification rejects replaced output");
+            check(std::string(snapshot->begin(), snapshot->end()) == "good",
+                  "previous verified bytes remain immutable");
+            check(prepare_with_worker(context, outputs, error, fake_worker) && worker_calls == 3,
+                  "unsupported identity repairs through verified preparation");
+            check(load_mod_media(outputs.at("menu"), "file", 4, resource.sha256, bytes, &error),
+                  "repaired output passes independent resource verification");
+            std::cout << "V82 unsupported-identity full-verification contract passed\n";
+            return 0;
+        }
         check(registered().probe(context, outputs, error), "persistent receipt hit");
         // This is the actual registered production callback, with an invalid
         // helper executable: any subprocess attempt would fail the test.
