@@ -9,6 +9,24 @@ Both netplay peers must use this release. Previous gameplay fixes and content
 packages remain included; High Frame Rate remains experimental. CD Speed and
 Fast Loading are excluded from the release.
 
+## Validation
+
+The Windows x64 production build passes all 28 title checks. The packaged
+launcher shows 4x and enabled Fit to Window; actual OpenGL allocation remains
+4x in Meteor Crater. Retail Arcade selection, driving, current-build save/load
+and a warm restart were exercised with isolated saves and muted output.
+
+The package includes 78 GCC and 144 TinyCC native cache pairs. With host
+compilers removed from PATH, the bundled Python/TinyCC toolchain compiled and
+loaded additional native overlays. Other arenas and imported-content combinations
+were not requalified; unprepared code uses the existing capture/compile fallback.
+This update does not require a system compiler on Windows.
+
+Current Windows media verification still runs on each process start. A warm
+launch using a network-hosted disc spent 28.6 seconds verifying the disc;
+local-disc startup was not measured. This is not a startup-performance claim.
+This release refresh provides a Windows build; Linux was not rebuilt.
+
 # v0.1.3 - playtest diagnostics
 
 Adds default-on **Playtest Diagnostics** (`v82.diagnostics`): offline sessions

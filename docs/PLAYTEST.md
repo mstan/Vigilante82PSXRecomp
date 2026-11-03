@@ -1,5 +1,61 @@
 # Combined Arcade playtest
 
+## v0.1.4 dependency refresh (2026-11-03)
+
+Validated code is title `e57c6fdae681837eca97f4d1f0ed46aa196a8c5f`, framework
+`d35f13c943b206d19d54f2912d73c6546806faed`, UI
+`dd47b1887b1858473bb42c38f4307f0eb1b07e60`, recomp-net
+`7a4d330ecf995b881d167234da3c0b01675fd512` and rbengine
+`28a2a472986a7d692d0378a22e756b0936413507`. Documentation-only commits after
+the tested title revision do not change the executable. Its SHA-256 is
+`4ca71f3b371d4042878f2dc54363cd9980a6bd7d231e2afb7fb39d690884cb98`.
+Native Clang 22.1.8 Release, `PSX_DEBUG_TOOLS=OFF`, PGXP flavor 2, both BIOS
+backends and all 28 title checks pass, including the current owner vehicle
+fixture and actual sequel-disc Resident Loading catalog check.
+
+The latest framework deliberately declines persistent Windows file identities.
+The media-receipt test now verifies the supported no-receipt/full-verification
+path there; it retains the existing receipt/invalidation checks on supported
+platforms. No production identity check was weakened. Production TCP input was
+also found to acknowledge but discard P1/P2 overrides; the framework fix and its
+debug/lean regression test are included in the pinned revision.
+
+The actual ZIP was extracted into a fresh profile. Hidden launcher captures
+show Internal Resolution 4x, Widescreen checked and Fit to Window. The game then
+used only `C:/Windows/System32;C:/Windows` in PATH, dummy audio and private
+cards/states. Native menus reached Arcade/Meteor Crater; acceleration/steering
+moved the vehicle through the arena. Screenshots show widened terrain and HUD
+placement; `video_info` reports requested/effective/hr scale 4, a 4096x2048 FBO,
+and 1280x720 output. Current-build save/load completed generations 1/2 with
+`last_ok=1`, and gameplay continued for 2,505 VBlanks after restoration. A warm
+process loaded the same current-build state and continued another 1,402 VBlanks.
+Both processes exited 0. No owner focus or live saved data was changed.
+
+The old release contains 1,322 GCC cache pairs but no raw capture inputs. Its
+old generated C/DLLs were not retagged. Ten retained additive captures were
+regenerated for `cg18_3d3adb8c_gc07053ec0_f2`: 78 GCC and 78 TinyCC shards passed.
+Fresh native output from the actual compiler-free runs expands the shipped
+TinyCC set to 144 pairs, alongside those 78 GCC pairs. The bundled Python and
+TinyCC were actually used; one gameplay sample reports 33 native region loads,
+710 registered functions, 6,831,690 native overlay dispatches and 2,330,824
+interpreter fallbacks, with zero stale blocks or candidate overflow. These
+counters are not a proof of complete arena/vehicle coverage. Code outside the
+retained cache still uses the existing verified capture/compile fallback.
+
+The mixed menu/gameplay host-API completion sample was 4,096 presents over
+69,444.5 ms (58.98 Hz), p95 26,220 us and p99 33,738 us on the shared PC. This
+is a runtime sanity observation, not a matched performance comparison. The
+warm startup reports disc verification 28,578,301 us, runtime commit 28,700,660
+us, overlay join 34,259 us and Resident Loading activation 683,845 us. The disc
+was on the owner's network share; no local-disc timing or startup win is claimed.
+
+Evidence: `G:/PSXRefresh-20261103/v82-final-qa` (native logs, controls, screenshots,
+private states and diagnostics), earlier fresh launcher images under
+`G:/PSXRefresh-20261103/v82-qa`, and `v82-ctest-release.log`/
+`v82-package-release.log` in the task root. Source issue: `beads-eio.12.26`.
+Two-peer netplay, all other arenas/content combinations and Linux remain outside
+this refresh's runtime qualification; prior limitations below remain applicable.
+
 ## Prepared-media receipts
 
 Verified imports remain in the external `psxrecomp/imports` cache. The title
