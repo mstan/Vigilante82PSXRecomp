@@ -1,3 +1,15 @@
+# v0.1.5 - default offline launch preparation
+
+Restores preparation reuse for the default offline mod selection. The default
+plan contains no converted resources or disc-dependent patches, so it can be
+prepared before the launcher and reused on Play after checking the actual
+catalog and selection contents. It no longer hashes the entire disc solely for
+an unused offline fingerprint.
+
+Netplay and source-dependent conversions retain their content verification.
+Existing 4x resolution, adaptive Fit to Window, gameplay fixes and saved mod
+choices remain included. CD Speed and Fast Loading remain excluded.
+
 # v0.1.4 - current engine and 4x defaults
 
 Updates psxrecomp to `d35f13c9`, recomp-ui to `dd47b188`, recomp-net to

@@ -1,4 +1,4 @@
-# Building v0.1.4
+# Building v0.1.5
 
 The private title repository pins the public `RetroPortingToolKit/psxrecomp`
 framework and `RetroPortingToolKit/recomp-ui` launcher as submodules. A
