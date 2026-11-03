@@ -48,7 +48,7 @@ shared sound bank; Dreamland's appended effects load only on Dreamland.
 Houston and Y have focused gameplay, original-special and flight checks. Both
 now run together on Dreamland after native menu selection. All thirteen original
 menu previews have been constructed in one uninterrupted carousel pass, followed
-by a return to the sequel roster. Sixteen focused title checks pass. Dedicated
+by a return to the sequel roster. All 28 title checks pass. Dedicated
 retail-map testing is intentionally excluded at the owner's request.
 
 Original driver portraits, selection voices, victory/defeat speech, menu names
@@ -69,8 +69,9 @@ restoration tests. Human checks of natural pickups, aiming and feel remain usefu
 Only the selected cars' effect textures are reserved; original shared sounds
 load on demand to fit the PS1 memory budgets.
 
-See [the playtest checklist](docs/PLAYTEST.md). Native resolution is the default;
-4K is disabled. Converted content, donor media and captures stay outside Git.
+See [the playtest checklist](docs/PLAYTEST.md). Fresh installs default to 4x
+internal resolution and enabled Fit to Window. Converted content, donor media
+and captures stay outside Git.
 
 ## Two-player netplay
 
