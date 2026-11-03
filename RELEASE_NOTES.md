@@ -1,6 +1,6 @@
 # v0.1.5 - default offline launch preparation
 
-Updates psxrecomp to `1ef0bc81`; UI and networking dependencies are unchanged.
+Updates psxrecomp to `8345dbdb`; UI and networking dependencies are unchanged.
 
 Restores preparation reuse for the default offline mod selection. The default
 plan contains no converted resources or disc-dependent patches, so it can be
