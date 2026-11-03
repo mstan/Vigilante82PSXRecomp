@@ -50,7 +50,7 @@ renderer = "opengl"
 offer_frame_interpolation = false
 texture_filtering = "nearest"
 aspect_ratio = "4:3"
-internal_resolution = "1080p"
+internal_resolution = "4x"
 resolution_reference_lines = 240
 # Precision belongs to the default-on PGXP mod, so turning it off works.
 geometry_correction = false

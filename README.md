@@ -3,7 +3,10 @@
 Private playtest downloads are published on the
 [releases page](https://github.com/mstan/Vigilante82PSXRecomp/releases).
 See [START_HERE](packaging/release/START_HERE.txt) for setup and
-[release notes](RELEASE_NOTES.md) for known issues. v0.1.3 adds default-on
+[release notes](RELEASE_NOTES.md) for known issues. v0.1.4 updates the shared
+engine, launcher and netplay dependencies, defaults new installs to 4x internal
+resolution and enables native-wide Fit to Window. Saved mod choices are retained.
+v0.1.3 added default-on
 **Playtest Diagnostics** (input recording and verified replay, see below) on
 the current psxrecomp framework; v0.1.2 fixed water disappearing at ultrawide
 screen edges. See [playtest validation](docs/PLAYTEST.md) for the follow-up.

@@ -1,3 +1,14 @@
+# v0.1.4 - current engine and 4x defaults
+
+Updates psxrecomp to `dca4cbc0`, recomp-ui to `dd47b188`, recomp-net to
+`7a4d330e` and rbengine to `28a2a472`. Fresh installs use a fixed 4x internal
+resolution and enable Widescreen with adaptive Fit to Window. Existing saved
+mod and aspect choices remain in control after updating.
+
+Both netplay peers must use this release. Previous gameplay fixes and content
+packages remain included; High Frame Rate remains experimental. CD Speed and
+Fast Loading are excluded from the release.
+
 # v0.1.3 - playtest diagnostics
 
 Adds default-on **Playtest Diagnostics** (`v82.diagnostics`): offline sessions
