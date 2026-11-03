@@ -1,6 +1,6 @@
 # v0.1.4 - current engine and 4x defaults
 
-Updates psxrecomp to `f5d56ee8`, recomp-ui to `dd47b188`, recomp-net to
+Updates psxrecomp to `d35f13c9`, recomp-ui to `dd47b188`, recomp-net to
 `7a4d330e` and rbengine to `28a2a472`. Fresh installs use a fixed 4x internal
 resolution and enable Widescreen with adaptive Fit to Window. Existing saved
 mod and aspect choices remain in control after updating.
