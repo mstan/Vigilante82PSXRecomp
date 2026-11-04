@@ -3,7 +3,8 @@ Vigilante 8: 2nd Offense @VERSION@
 Extract the entire Windows ZIP, then run Vigilante82PSXRecomp.exe.
 
 1. Select your complete Vigilante 8: 2nd Offense USA disc (SLUS-00868).
-   CUE/BIN and CHD are supported. Netplay requires all 17 tracks.
+   Offline play supports CUE/BIN and CHD. Netplay requires the complete
+   17-track .cue with every track BIN beside it.
    OpenBIOS is included; no retail BIOS file is needed.
 2. Configure your gamepad or keyboard in the launcher, then press Play.
 3. Optional original cars/music require your Vigilante 8 USA v1.0 disc.

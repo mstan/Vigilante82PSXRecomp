@@ -25,8 +25,8 @@ Bring your own USA PlayStation disc. No game data is included.
 
 1. Extract the entire Windows ZIP and run **Vigilante82PSXRecomp.exe**.
 2. Select your complete **Vigilante 8: 2nd Offense USA** disc (`SLUS-00868`).
-   CUE/BIN and CHD are supported. Keep all disc tracks together; netplay needs
-   the complete 17-track disc.
+   Offline play supports CUE/BIN and CHD. For netplay, select the complete
+   17-track **.cue** and keep every track BIN beside it.
 3. Configure your controller and press **Play**. OpenBIOS is included, so no
    retail BIOS file is needed.
 
@@ -42,7 +42,7 @@ PlayStation game and can be remapped.
 
 ## Netplay: one screen per player
 
-Both players need **the same release**, the complete sequel disc and matching
+Both players need **the same release**, the complete 17-track sequel CUE/BIN and matching
 content/mod choices. Each player supplies and verifies their own media.
 
 1. Select **16:9** or **21:9** under **Mods → Widescreen → View** before starting.
