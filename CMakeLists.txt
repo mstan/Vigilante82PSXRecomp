@@ -18,6 +18,10 @@ if(NOT GAME_C)
 endif()
 file(GLOB TITLE_PLUGINS CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/*.c" "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/*.cpp")
+set(V82_EXCLUDED_BUILTINS psx.enhancement.cd-speed psx.enhancement.fast-loading)
+if(PSX_PUBLIC_RELEASE)
+    list(APPEND V82_EXCLUDED_BUILTINS psx.enhancement.hd-textures)
+endif()
 # PGXP: the one runtime is the PGXP hook flavour (-DPSX_PGXP=1, overlay
 # flavour 2), so the default-on psx.enhancement.pgxp package reaches dataflow
 # coverage. The generated C already carries the PGXP_*() hook sites.
@@ -31,7 +35,7 @@ psxrecomp_add_runtime_target(psx-runtime
     WINDOW_TITLE "Vigilante 8: 2nd Offense Recompiled"
     DEFAULT_GAME_CONFIG_PATH "game.toml"
     LAUNCHER_BOXART "${V82_LAUNCHER_BOXART}"
-    EXCLUDE_BUILTIN_MODS psx.enhancement.cd-speed psx.enhancement.fast-loading
+    EXCLUDE_BUILTIN_MODS ${V82_EXCLUDED_BUILTINS}
     PRELOADED_MODS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mods/preloaded"
     EXTRAS_SOURCES ${TITLE_PLUGINS})
 set_target_properties(psx-runtime PROPERTIES OUTPUT_NAME "Vigilante82PSXRecomp")
