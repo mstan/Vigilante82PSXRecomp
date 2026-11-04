@@ -12,7 +12,16 @@ launch correction. Public packages now use the shared release channel,
 manifest and audits. Diagnostic recording/display are off by default and
 remain selectable. CD Speed and Fast Loading are absent.
 
-High Frame Rate remains experimental. Quest keeps its retail roster. Save
+Real 21:9 README images now show offline Meteor Crater and both independent
+views from an active two-player LAN / Direct IP rollback match. Separate inputs,
+advancing resolved ticks and zero desyncs were observed; both peers exited 0.
+Packaged offline gameplay and current-build save/load passed. All 28 title
+checks and the public package/reopen audits pass. See
+[validation scope](https://github.com/mstan/Vigilante82PSXRecomp/blob/main/docs/PLAYTEST.md).
+
+High Frame Rate remains experimental. Optional imports retain limited playtest
+coverage; this release does not qualify all 31 combined cars, every arena,
+complete campaigns or adverse internet conditions. Quest keeps its retail roster. Save
 states are build-specific; native memory-card progress is separate.
 
 # v0.1.5 - default offline launch preparation

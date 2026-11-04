@@ -27,7 +27,7 @@ replay_helper = false
 
 [payload]
 start_here = "packaging/release/START_HERE.txt"
-files = ["README.md", "LICENSE", "LICENSING.md", "RELEASE_NOTES.md", {from = "packaging/release/input.ini", to = "input.ini"}]
+files = ["README.md", "LICENSE", "LICENSING.md", "RELEASE_NOTES.md", "assets/screenshots/meteor-crater-21x9.png", "assets/screenshots/netplay-player-one-21x9.png", "assets/screenshots/netplay-player-two-21x9.png", {from = "packaging/release/input.ini", to = "input.ini"}]
 
 [[hooks.prepare]]
 command = ["{python}", "{root}/tools/check_release_config.py"]

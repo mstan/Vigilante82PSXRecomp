@@ -1,5 +1,53 @@
 # Combined Arcade playtest
 
+## v0.4.0 public showcase (2026-11-03)
+
+The real README images were captured from the public-channel Windows build at
+`211703a7`, executable SHA-256
+`1f166cf4cfd055e39a6101c1bb845826dface041c82e03f65692a5fc1b235bb0`.
+It uses the frozen engine `060ef0ab`, UI `dd47b188`, recomp-net `7a4d330e` and
+rbengine `28a2a472`. Native GCC Release retains the qualified unprofiled build
+class. All 28 title checks pass. The supported package/reopen gates pass with
+18 mod packages, diagnostic recording/display off, OpenBIOS only, system DLL
+imports, the current media worker and 78 GCC/144 TinyCC native cache pairs.
+The unused, unsupported HD Textures control is excluded from the public catalog.
+
+Two private peers ran the actual complete sequel CUE in a fresh Direct UDP
+loopback rollback session on SERVER. The launcher Mods UI selected 21:9 before
+connection; the saved choice survived both peers and the subsequent offline
+launch. Wonderwagon and Thunderbolt were selected through the original game
+menus. Both peers report active rollback, two players and zero desyncs, with
+resolved ticks advancing from 44,463 to 44,611/44,612 during separate forward
+and turning inputs. Each image shows its own car, complete HUD and full 21:9
+camera. Effective rendering is 4x OpenGL; the native-wide local view reports
+400 extra horizontal pixels and a 200-pixel margin. This verifies local
+LAN / Direct IP behavior, not internet/NAT traversal or adverse WAN conditions.
+Both processes exited normally with code 0.
+
+The offline hero is actual 21:9 Meteor Crater gameplay, captured after its intro
+label cleared. The game reports 4x internal rendering, a 1680x720 drawable and
+240 extra horizontal pixels. Separate private keyboard/TCP input moved the car;
+current-build save/load completed generations 1/2 with `last_ok=1`, and gameplay
+continued after restoration. Native overlays remained active: 755 registered
+functions, 33 loads and 4.84 million native dispatches, with no stale blocks or
+candidate overflow in that sample. Pause, quit confirmation and return to the
+title were exercised. The solo process exited 0. A brief shared SERVER gameplay
+sample recorded 140 presents in 2,989.9 ms (46.82 Hz), p95 30.067 ms and p99
+35.674 ms; this is a sanity observation, not a matched performance comparison
+or a constant-60-FPS claim.
+
+All three PNGs came from the aspect-fitted OpenGL `present_shot` path, with a
+completed sequence and `wrote=1`. They are 1680x720 and losslessly compressed;
+no stretching, compositing or diagnostic overlay was added. Fresh packaged
+launcher defaults show Fit to Window and diagnostics off; actual gameplay
+reports 4x. The explicit saved 21:9 selection was preserved across launches.
+Private proof is retained under `G:/PSXShowcase-0.4.0-20261103` and
+`G:/PSXShowcase-20261103/v82/evidence`.
+
+This release does not newly qualify every original or imported car, all arenas,
+complete campaigns, optional High Frame Rate, Linux, or internet matchmaking.
+Earlier feature-specific coverage and limitations below remain applicable.
+
 ## v0.1.5 default offline launch correction (2026-11-03)
 
 Validated title code is `03fd5e7a`, framework

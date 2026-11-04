@@ -7,6 +7,10 @@ netplay where **each player gets their own full-screen view**.
 
 Bring your own USA PlayStation disc. No game data is included.
 
+![Wonderwagon in Meteor Crater at 21:9](assets/screenshots/meteor-crater-21x9.png)
+
+*Real 21:9 gameplay at 4x internal resolution.*
+
 ## What's included
 
 - **Vigilante 8: 2nd Offense on PC**, with its retail cars, arenas and game modes.
@@ -54,6 +58,14 @@ Each peer sees their own car, camera and HUD across the full gameplay view.
 Selection, pause and confirmation menus retain their complete original layout.
 The showcase images use a live LAN / Direct IP match.
 
+**Player 1: Wonderwagon**
+
+![Player 1 has a complete 21:9 camera and HUD](assets/screenshots/netplay-player-one-21x9.png)
+
+**Player 2: Thunderbolt, in the same match**
+
+![Player 2 has a different complete 21:9 camera and HUD](assets/screenshots/netplay-player-two-21x9.png)
+
 ## Optional original-game content
 
 | Content | Your source media |
@@ -68,7 +80,9 @@ players. Quest keeps its retail roster; imported campaigns are not included.
 
 ## More information
 
-High Frame Rate is an optional experimental mod. Save states belong to the
+High Frame Rate is an optional experimental mod. Optional imports have limited
+playtest coverage; the complete roster, arenas and campaigns have not all been
+qualified. See the validation notes below for scope. Save states belong to the
 build that created them; keep native memory-card saves for persistent progress.
 
 - [Release notes and known limitations](RELEASE_NOTES.md)
@@ -77,6 +91,8 @@ build that created them; keep native memory-card saves for persistent progress.
 - [Licensing and credits](LICENSING.md)
 
 Built on [psxrecomp](https://github.com/RetroPortingToolKit/psxrecomp) and
-[recomp-ui](https://github.com/RetroPortingToolKit/recomp-ui), with combined
+[recomp-ui](https://github.com/RetroPortingToolKit/recomp-ui), with rollback
+networking from [recomp-net](https://github.com/RetroPortingToolKit/recomp-net)
+and combined
 content work adapted from the authorized
 [Vigilante 8 reference implementation](https://github.com/GTTeancum/Vigilante-8-recomp).
