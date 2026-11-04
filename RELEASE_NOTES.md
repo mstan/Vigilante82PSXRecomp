@@ -24,6 +24,12 @@ coverage; this release does not qualify all 31 combined cars, every arena,
 complete campaigns or adverse internet conditions. Quest keeps its retail roster. Save
 states are build-specific; native memory-card progress is separate.
 
+The README also shows original Y and Houston's vehicles/portraits and opening
+21:9 Super Dreamland 64 gameplay. **Known issue:** Dreamland can stall during
+loading or shortly after play begins, with Resident Loading both on and off.
+Original-car imports do not prevent it. Sustained Dreamland play remains
+unqualified; the retail and netplay checks above retain their original scope.
+
 # v0.1.5 - default offline launch preparation
 
 Updates psxrecomp to `060ef0ab`; UI and networking dependencies are unchanged.

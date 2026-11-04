@@ -78,6 +78,19 @@ automatic; no Python installation or manual extraction is needed. Netplay
 players each prepare their own copies. Donor assets are not transferred between
 players. Quest keeps its retail roster; imported campaigns are not included.
 
+**Original cars, with their own models and driver portraits**
+
+| Y's '64 Luxo Saucer | Houston's '75 Palamino |
+|---|---|
+| ![Original Y and the '64 Luxo Saucer in the car selector](assets/screenshots/original-y-selection.png) | ![Original Houston and the '75 Palamino in the car selector](assets/screenshots/original-houston-selection.png) |
+
+**Super Dreamland 64, with original Y at 21:9**
+
+![Original Y's saucer in Super Dreamland 64 at 21:9 and 4x internal resolution](assets/screenshots/dreamland-original-y-21x9.png)
+
+Real v0.4.0 captures using imports from owner-supplied media. **Known issue:**
+Dreamland can stall during loading or shortly after play begins.
+
 ## More information
 
 High Frame Rate is an optional experimental mod. Optional imports have limited
