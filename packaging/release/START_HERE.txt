@@ -1,37 +1,28 @@
-Vigilante82PSXRecomp v0.1.5 - private playtest update
+Vigilante 8: 2nd Offense @VERSION@
 
-Windows: extract the entire ZIP, then run Vigilante82PSXRecomp.exe.
-Linux: chmod +x the AppImage, then run it. If FUSE is unavailable, use
-./Vigilante82PSXRecomp-v0.1.5-linux-x64.AppImage --appimage-extract-and-run
-Linux requires glibc 2.39 or newer (Ubuntu 24.04 or a comparable newer system).
+Extract the entire Windows ZIP, then run Vigilante82PSXRecomp.exe.
 
-1. The launcher selects bundled OpenBIOS automatically. An owner-supplied
-   SCPH1001.BIN is also supported.
-2. Select your complete Vigilante 8: 2nd Offense USA disc (SLUS-00868).
-   CUE/BIN or CHD is supported; netplay requires all 17 tracks.
-3. Optional original cars/music need your Vigilante 8 USA v1.0 disc.
-   Super Dreamland 64 needs your Vigilante 8 USA N64 ROM.
-   Select source media in Mods. Conversion happens automatically on Play.
-   No Python installation or manual extraction is needed.
-4. Configure your controller and play. For netplay, configure Player 1 / Netplay
-   locally on each computer, then choose 2 Player > Versus or Cooperative.
+1. Select your complete Vigilante 8: 2nd Offense USA disc (SLUS-00868).
+   CUE/BIN and CHD are supported. Netplay requires all 17 tracks.
+   OpenBIOS is included; no retail BIOS file is needed.
+2. Configure your gamepad or keyboard in the launcher, then press Play.
+3. Optional original cars/music require your Vigilante 8 USA v1.0 disc.
+   Super Dreamland 64 requires your Vigilante 8 USA N64 ROM.
+   Select source media in Mods; preparation happens automatically.
 
-Both peers need this same release and matching content/mod choices.
-New installs default to 4x internal resolution and native-wide Fit to Window.
-Existing saved mod and view choices are preserved. High Frame Rate is optional.
-Multiplayer locks the
-chosen 16:9/21:9 view; other offline view choices use fixed 16:9 online.
-High Frame Rate remains experimental. v0.1.3 adds Playtest Diagnostics
-(default on, offline play only; turn off in Mods). It records your inputs to
-saves/diagnostics beside the game. If you hit a bug, quit normally and zip the
-newest session folder there (diagnostics-location.txt names it) and send it.
-It contains your starting memory cards but never the disc or BIOS. The v0.1.2
-ultrawide water fix and the v0.1.1 multiplayer HUD fixes are included.
+Fresh installs use 4x internal resolution and native-wide Fit to Window.
+Existing explicit mod/view choices are preserved when updating.
 
-Settings, saves and converted content are writable user data. Linux stores
-them under ~/.local/share/Vigilante82PSXRecomp by default; Windows uses the
-extracted folder plus the user's external content cache.
+Both netplay players need the same release, complete discs and matching
+content choices. Configure Player 1 / Netplay locally on each computer.
+Choose 16:9 or 21:9 in Mods > Widescreen > View before starting, then open
+Netplay to host/join a room or use LAN / Direct IP. Choose 2 Player in-game.
+Each player gets an independent full-screen gameplay view.
 
-This package contains no disc images, donor ROMs, converted donor assets,
-retail BIOS image, or saved games. It includes OpenBIOS and dependency notices.
-Read RELEASE_NOTES.md for validation and known limitations.
+High Frame Rate remains experimental. Playtest Diagnostics are optional and
+off by default in this public release. If enabled, recordings under
+saves/diagnostics contain starting memory-card data; share them deliberately.
+
+Keep your saves and settings when updating. This package contains no discs,
+donor ROMs, converted donor assets, retail BIOS images or saved games.
+Read README.md and RELEASE_NOTES.md for features, setup and known limitations.

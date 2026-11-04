@@ -35,12 +35,17 @@ psxrecomp_add_runtime_target(psx-runtime
     PRELOADED_MODS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mods/preloaded"
     EXTRAS_SOURCES ${TITLE_PLUGINS})
 set_target_properties(psx-runtime PROPERTIES OUTPUT_NAME "Vigilante82PSXRecomp")
+include("${PSXRECOMP_ROOT}/runtime/playtest_diagnostics.cmake")
+psxrecomp_playtest_diagnostics_defaults(psx-runtime MOD_ID v82.diagnostics)
 
-# Playtest diagnostics (default-on mod package v82.diagnostics; source is
+# Playtest diagnostics (default on outside public releases; source is
 # globbed into TITLE_PLUGINS). The build identity is part of every recording
 # header, so a replay refuses a different build instead of reporting a false
 # divergence.
 set(V82_SOURCE_REV "nogit" CACHE STRING "Source revision stamped into the diagnostic build id (auto-detected from git when empty/nogit)")
+if(PSX_SOURCE_COMMIT)
+    string(SUBSTRING "${PSX_SOURCE_COMMIT}" 0 12 V82_SOURCE_REV)
+endif()
 find_package(Git QUIET)
 if(GIT_FOUND AND V82_SOURCE_REV STREQUAL "nogit")
     execute_process(COMMAND "${GIT_EXECUTABLE}" rev-parse --short=12 HEAD

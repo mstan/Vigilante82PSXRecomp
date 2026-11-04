@@ -1,0 +1,35 @@
+schema = 1
+
+[product]
+name = "Vigilante82PSXRecomp"
+display_name = "Vigilante 8: 2nd Offense"
+exe_name = "Vigilante82PSXRecomp"
+version_file = "packaging/release/VERSION"
+game_toml = "game.local.toml"
+player_game_toml = "packaging/release/game.toml"
+runtime_target = "psx-runtime"
+
+[build]
+cmake_args = ["-DPSX_SDL_BACKEND=SDL3", "-DPSX_MOD_DEVELOPER_CHANNEL=OFF"]
+binary_identity = "{version}+{commit12}"
+
+[aot]
+mode = "none"
+
+[overlay_toolchain]
+ship = true
+
+[diagnostics]
+game_id = "SLUS-00868"
+package_id = "v82.diagnostics"
+replay_helper = false
+
+[payload]
+start_here = "packaging/release/START_HERE.txt"
+files = ["README.md", "LICENSE", "LICENSING.md", "RELEASE_NOTES.md", {from = "packaging/release/input.ini", to = "input.ini"}]
+
+[[hooks.prepare]]
+command = ["{python}", "{root}/tools/check_release_config.py"]
+
+[[hooks.post_stage]]
+command = ["{python}", "{root}/tools/stage_release_extras.py", "--framework", "{framework}", "--build-dir", "{build_dir}", "--stage", "{stage}"]

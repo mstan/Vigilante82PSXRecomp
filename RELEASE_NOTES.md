@@ -1,3 +1,20 @@
+# v0.4.0 - widescreen and independent-screen netplay showcase
+
+The public Windows release brings a player-focused README, 4x internal
+resolution and adaptive Fit to Window defaults, and two-player netplay with
+an independent full-screen camera per peer at 16:9 or 21:9. Original Vigilante
+8 cars/music and Super Dreamland 64 remain optional imports from your own
+media. Explicit choices and native memory-card saves are preserved.
+
+Uses the qualified psxrecomp `060ef0ab`, recomp-ui `dd47b188`, recomp-net
+`7a4d330e` and rbengine `28a2a472` stack, including v0.1.5's default offline
+launch correction. Public packages now use the shared release channel,
+manifest and audits. Diagnostic recording/display are off by default and
+remain selectable. CD Speed and Fast Loading are absent.
+
+High Frame Rate remains experimental. Quest keeps its retail roster. Save
+states are build-specific; native memory-card progress is separate.
+
 # v0.1.5 - default offline launch preparation
 
 Updates psxrecomp to `060ef0ab`; UI and networking dependencies are unchanged.
