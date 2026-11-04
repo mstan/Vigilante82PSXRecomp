@@ -72,8 +72,8 @@ High Frame Rate is an optional experimental mod. Save states belong to the
 build that created them; keep native memory-card saves for persistent progress.
 
 - [Release notes and known limitations](RELEASE_NOTES.md)
-- [Gameplay and netplay validation](docs/PLAYTEST.md)
-- [Building and packaging from source](docs/BUILD_RELEASE.md)
+- [Gameplay and netplay validation](https://github.com/mstan/Vigilante82PSXRecomp/blob/main/docs/PLAYTEST.md)
+- [Building and packaging from source](https://github.com/mstan/Vigilante82PSXRecomp/blob/main/docs/BUILD_RELEASE.md)
 - [Licensing and credits](LICENSING.md)
 
 Built on [psxrecomp](https://github.com/RetroPortingToolKit/psxrecomp) and

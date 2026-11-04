@@ -12,6 +12,7 @@ runtime_target = "psx-runtime"
 [build]
 cmake_args = ["-DPSX_SDL_BACKEND=SDL3", "-DPSX_MOD_DEVELOPER_CHANNEL=OFF"]
 binary_identity = "{version}+{commit12}"
+selective_pgo = false
 
 [aot]
 mode = "none"

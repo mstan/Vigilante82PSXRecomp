@@ -38,9 +38,9 @@ artifact name). Explicit player choices remain in control. The title registers
 the shared diagnostics-default hook for its own recorder.
 
 The shared pipeline and `packaging/release.toml` own provenance, regeneration,
-production compilation, staging and artifact verification. Supported native GNU
-builds use selective runtime PGO; its brief hidden boot is training, not gameplay
-qualification. See the framework's
+production compilation, staging and artifact verification. This recipe retains
+the qualified portable, unprofiled runtime build; packaging does not launch a
+training game. See the framework's
 [release documentation](../psxrecomp-v4/docs/RELEASING_A_TITLE.md).
 
 The small V82 post-stage hook adds its verified conversion worker, notices and
