@@ -1,3 +1,10 @@
+# v0.4.1 - shared Windows and Linux packages
+
+- Uses the shared release packager for the Windows ZIP and Linux AppImage.
+- Input Recording starts on. Input Display is independent and starts off.
+  Both options keep their saved values when updating.
+- Select your original USA disc image in the launcher. OpenBIOS is included.
+
 # v0.4.0 - widescreen and independent-screen netplay showcase
 
 The public Windows release brings a player-focused README, 4x internal
