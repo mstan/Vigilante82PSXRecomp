@@ -29,6 +29,13 @@ replay_helper = false
 start_here = "packaging/release/START_HERE.txt"
 files = ["README.md", "LICENSE", "PERMISSIONS.md", "LICENSING.md", "RELEASE_NOTES.md", "assets/screenshots/meteor-crater-21x9.png", "assets/screenshots/netplay-player-one-21x9.png", "assets/screenshots/netplay-player-two-21x9.png", {from = "packaging/release/input.ini", to = "input.ini"}]
 
+[linux]
+app_run = "packaging/release/AppRun.template"
+desktop_file = "packaging/linux/io.github.mstan.Vigilante82PSXRecomp.desktop"
+icon = "psxrecomp-v4/docs/assets/psxrecomp-logo.png"
+payload_dir = "vigilante82psxrecomp"
+env_prefix = "V82_RECOMP"
+
 [[hooks.prepare]]
 command = ["{python}", "{root}/tools/check_release_config.py"]
 

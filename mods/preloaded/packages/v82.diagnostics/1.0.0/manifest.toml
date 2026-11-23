@@ -4,7 +4,7 @@ version = "1.0.0"
 name = "Playtest Diagnostics"
 author = "mstan"
 license = "GPL-3.0-only"
-description = "Optional input recording and display for bug reports. Enabled by default in development and playtest builds; off by default in public releases."
+description = "Input recording and an optional input display for bug reports. Recording starts on and the display starts off."
 resolver = "declarative"
 save_compatibility = "shared"
 
@@ -16,7 +16,7 @@ id = "recording"
 name = "Input Recording"
 description = "Writes inputs.csv, session settings and starting card copies beneath saves/diagnostics beside the game. Zip the newest session folder when reporting a bug. The disc and BIOS are never included."
 group = "Diagnostics"
-default_enabled = false
+default_enabled = true
 
 [[feature]]
 id = "osd"

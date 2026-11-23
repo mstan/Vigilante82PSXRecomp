@@ -1,6 +1,7 @@
 Vigilante 8: 2nd Offense @VERSION@
 
-Extract the entire Windows ZIP, then run Vigilante82PSXRecomp.exe.
+Windows: Extract the entire ZIP, then run Vigilante82PSXRecomp.exe.
+Linux: Make the AppImage executable and run it.
 
 1. Select your complete Vigilante 8: 2nd Offense USA disc (SLUS-00868).
    Offline play supports CUE/BIN and CHD. Netplay requires the complete
@@ -20,9 +21,10 @@ Choose 16:9 or 21:9 in Mods > Widescreen > View before starting, then open
 Netplay to host/join a room or use LAN / Direct IP. Choose 2 Player in-game.
 Each player gets an independent full-screen gameplay view.
 
-High Frame Rate remains experimental. Playtest Diagnostics are optional and
-off by default in this public release. If enabled, recordings under
-saves/diagnostics contain starting memory-card data; share them deliberately.
+High Frame Rate remains experimental. Input Recording starts on and Input
+Display starts off. You can change either under Mods > Playtest Diagnostics.
+Recordings under saves/diagnostics contain starting memory-card data. Share
+them deliberately.
 
 Keep your saves and settings when updating. This package contains no discs,
 donor ROMs, converted donor assets, retail BIOS images or saved games.

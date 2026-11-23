@@ -19,7 +19,7 @@ endif()
 file(GLOB TITLE_PLUGINS CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/*.c" "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/*.cpp")
 set(V82_EXCLUDED_BUILTINS psx.enhancement.cd-speed psx.enhancement.fast-loading)
-if(PSX_PUBLIC_RELEASE)
+if(PSX_PUBLIC_RELEASE OR PSX_RELEASE_CHANNEL STREQUAL "playtest")
     list(APPEND V82_EXCLUDED_BUILTINS psx.enhancement.hd-textures)
 endif()
 # PGXP: the one runtime is the PGXP hook flavour (-DPSX_PGXP=1, overlay
@@ -42,10 +42,8 @@ set_target_properties(psx-runtime PROPERTIES OUTPUT_NAME "Vigilante82PSXRecomp")
 include("${PSXRECOMP_ROOT}/runtime/playtest_diagnostics.cmake")
 psxrecomp_playtest_diagnostics_defaults(psx-runtime MOD_ID v82.diagnostics)
 
-# Playtest diagnostics (default on outside public releases; source is
-# globbed into TITLE_PLUGINS). The build identity is part of every recording
-# header, so a replay refuses a different build instead of reporting a false
-# divergence.
+# Playtest diagnostics source is globbed into TITLE_PLUGINS. Every recording
+# header includes the build identity to guard against false replay divergence.
 set(V82_SOURCE_REV "nogit" CACHE STRING "Source revision stamped into the diagnostic build id (auto-detected from git when empty/nogit)")
 if(PSX_SOURCE_COMMIT)
     string(SUBSTRING "${PSX_SOURCE_COMMIT}" 0 12 V82_SOURCE_REV)
